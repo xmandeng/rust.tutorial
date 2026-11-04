@@ -1,0 +1,25 @@
+# The tutorial package: the chapter demos (src/main.rs), the order system
+# library (src/lib.rs) and its tests (tests/). The web API is a second
+# package in api/; [workspace] makes the two build and lock together.
+[package]
+name = "tutorial"
+version = "0.1.0"
+edition = "2024"
+# 1.88 is the first release with `if let ... && ...` chains (src/ch09_errors.rs).
+rust-version = "1.88"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "time"] }
+
+[workspace]
+members = ["api"]
+
+# Lint settings shared by both packages (each opts in with [lints] workspace = true).
+# Money is written in cents with the cents split off, 120_00 for 120.00,
+# which clippy would otherwise flag as inconsistent digit grouping.
+[workspace.lints.clippy]
+inconsistent_digit_grouping = "allow"
+
+[lints]
+workspace = true

@@ -1,0 +1,7 @@
+project_name: rust.tutorial
+repo_name: xmandeng/rust.tutorial
+jira_url: https://mandeng.atlassian.net
+epic_manager: true
+enable_langsmith: true
+enable_logfire: false
+enable_agent_teams: true

@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="textbook.css">
+<style>
+.codewrap { break-inside: avoid; margin: 0.25cm 0 0.3cm; }
+.codewrap .codeblock { margin-top: 0; border-top-left-radius: 0; }
+.codewrap.long, .codewrap.long .codeblock { break-inside: auto; }
+.codehd { display: inline-block; font-family: 'Nimbus Sans','Liberation Sans',sans-serif;
+  font-size: 7.5pt; font-weight: 700; letter-spacing: 0.04em; color: #fff;
+  padding: 1px 8px; border-radius: 3px 3px 0 0; background: #1f3756; }
+.codehd.py { background: #2f6b3f; }
+.codehd.out { background: #5b6470; }
+.codehd.sh, .codehd.toml { background: #46647f; }
+.codeblock .st { color: #a8d5a2; }
+table.data code { font-size: 8.5pt; }
+table.data td.c, table.data td.c code { font-family: 'Liberation Mono','Nimbus Mono PS',monospace; font-size: 8.5pt; }
+ol.tight li, ul.tight li { margin-bottom: 0.08cm; }
+.qa { break-inside: avoid; margin: 0 0 0.3cm; }
+.qa .q { font-family: 'Nimbus Sans','Liberation Sans',sans-serif; font-weight: 700; color: #1f3756; font-size: 10.5pt; }
+.qa p { margin: 0.06cm 0 0; }
+</style>
+<title>Rust for Python Developers</title>
+</head>
+<body>
+
+<!-- ===================== TITLE PAGE ===================== -->
+<section class="title-page">
+  <div class="eyebrow">Interview Preparation &middot; Rust</div>
+  <div class="rule-gold"></div>
+  <div class="doc-title">Rust for Python Developers</div>
+  <div class="doc-subtitle">The core language, read through working code</div>
+  <div class="rule-gold"></div>
+  <p class="abstract">This book teaches enough Rust to read, change and discuss
+  real code in an interview. Every chapter walks through a file in the companion
+  project and shows the Python you would write for the same job. The last
+  chapters are hands-on drills and a list of interview questions with short
+  answers.</p>
+  <div class="title-footer">
+    Study Guide &middot; Generated 4 November 2026<br>
+    Companion code: the <code>rust.tutorial</code> repository &middot; Rust 2024 edition
+  </div>
+</section>
+
+<!-- ===================== CONTENTS ===================== -->
+<section class="contents-page">
+  <h1 class="contents-h">Contents</h1>
+  <div class="toc">
+    <div class="l1"><a href="#s1"><span class="num">1</span>What Rust Is</a></div>
+    <div class="l1"><a href="#s2"><span class="num">2</span>The Companion Project</a></div>
+    <div class="l1"><a href="#s3"><span class="num">3</span>Syntax Basics</a></div>
+    <div class="l1"><a href="#s4"><span class="num">4</span>Types and Variables</a></div>
+    <div class="l1"><a href="#s5"><span class="num">5</span>Control Flow</a></div>
+    <div class="l1"><a href="#s6"><span class="num">6</span>Ownership and Borrowing</a></div>
+    <div class="l1"><a href="#s7"><span class="num">7</span>Structs and Methods</a></div>
+    <div class="l1"><a href="#s8"><span class="num">8</span>Enums and Pattern Matching</a></div>
+    <div class="l1"><a href="#s9"><span class="num">9</span>Error Handling: Result and Option</a></div>
+    <div class="l1"><a href="#s10"><span class="num">10</span>Collections</a></div>
+    <div class="l1"><a href="#s11"><span class="num">11</span>Traits and Generics</a></div>
+    <div class="l1"><a href="#s12"><span class="num">12</span>Iterators and Closures</a></div>
+    <div class="l1"><a href="#s13"><span class="num">13</span>Lifetimes and Smart Pointers</a></div>
+    <div class="l1"><a href="#s14"><span class="num">14</span>Concurrency and Async</a></div>
+    <div class="l1"><a href="#s15"><span class="num">15</span>Walkthrough: The Order System</a></div>
+    <div class="l1"><a href="#s16"><span class="num">16</span>Walkthrough: The Web API</a></div>
+    <div class="l1"><a href="#s17"><span class="num">17</span>Hands-on Drills</a></div>
+    <div class="l1"><a href="#s18"><span class="num">18</span>Interview Quick Reference</a></div>
+    <div class="l1"><a href="#sA"><span class="num">A</span>Drill Solutions</a></div>
+  </div>
+
+  <h3 class="sub" style="margin-top:0.7cm">Audience and Scope</h3>
+  <p>The reader writes Python and has not used Rust. The goal is working fluency
+  for an interview: read unfamiliar Rust, make small changes, run the tests, and
+  explain the core ideas in the right vocabulary. The goal is not to become a
+  Rust developer overnight.</p>
+  <p>Every Rust listing labelled with a file path is copied from the companion
+  project, which builds with no compiler or Clippy warnings, and all 12 of its tests pass. Program output
+  shown in the book is the real output of <code>cargo run</code>, and every compiler error shown is the
+  real output of <code>cargo build</code>.</p>
+
+  <h3 class="sub">If You Have Two Hours</h3>
+  <ul class="tight">
+    <li>Read chapters 1, 6, 9, 11 and 15. Ownership (6) is the idea interviewers test most; the others
+    cover how Rust replaces exceptions, classes and inheritance.</li>
+    <li>Skim chapters 8 (enums) and 14 (concurrency).</li>
+    <li>Do drills 1 to 3 in chapter 17 at a keyboard.</li>
+    <li>Read chapter 18 last, out loud.</li>
+  </ul>
+</section>
+
+<!-- ===================== 1 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s1"><span class="snum">1</span> What Rust Is</h2>
+  <p>Rust is a statically typed, compiled systems language. It started at Mozilla, reached version 1.0 in
+  2015, and is now run by the Rust Foundation. "Statically typed" means every variable's type is fixed and
+  checked when the program is compiled, before it runs. "Compiled" means the compiler turns your source into
+  a native executable for one kind of machine: there is no interpreter and no virtual machine.</p>
+  <p>Rust's selling point is that it is as fast as C and C++ but prevents their most common bugs at compile
+  time: using memory after it was freed, freeing it twice, reading past the end of an array, and two threads
+  changing the same data at once. It does this without a garbage collector, through a set of rules called
+  <strong>ownership</strong> (chapter 6).</p>
+  <p>Python developers meet Rust more often than they realise. <code>uv</code>, <code>ruff</code>,
+  <code>polars</code> and <code>pydantic-core</code> (the engine inside Pydantic 2) are written in Rust and
+  called from Python through a library named <strong>PyO3</strong>. "Rewrite the hot loop in Rust" is now a
+  common answer to "this Python is too slow".</p>
+
+  <h3 class="sub" id="s1-1">1.1&nbsp;&nbsp;The Pieces</h3>
+  <p>The table lists the tools interviewers name, with the nearest Python equivalent of each.</p>
+  <table class="data">
+    <thead><tr><th style="width:22%">Piece</th><th>What it is</th><th style="width:26%">Python analogue</th></tr></thead>
+    <tbody>
+      <tr><td><strong>rustc</strong></td><td>The compiler. You rarely call it directly; Cargo does.</td><td>The CPython interpreter</td></tr>
+      <tr><td><strong>Cargo</strong></td><td>Build tool and package manager: create, build, run, test, add dependencies.</td><td><code>uv</code>, <code>pip</code> and <code>pytest</code> together</td></tr>
+      <tr><td><strong>crates.io</strong></td><td>The public package registry. A package is a <strong>crate</strong>.</td><td>PyPI</td></tr>
+      <tr><td><strong>rustup</strong></td><td>Installs and switches Rust versions.</td><td><code>pyenv</code>, <code>uv python</code></td></tr>
+      <tr><td><strong>std</strong></td><td>The standard library: collections, files, threads, networking. Smaller than Python's; no HTTP, JSON or async runtime.</td><td>The standard library</td></tr>
+      <tr><td><strong>Clippy, rustfmt</strong></td><td>The linter and the formatter: <code>cargo clippy</code>, <code>cargo fmt</code>.</td><td><code>ruff check</code>, <code>ruff format</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub" id="s1-2">1.2&nbsp;&nbsp;How a Rust Program Runs</h3>
+  <p><code>cargo build</code> runs the compiler, which checks every type, every borrow and every
+  <code>match</code> in every file, and refuses to produce a program if any check fails. The output is a
+  native executable in <code>target/debug/</code>. Running it needs nothing else installed: no Rust, no
+  runtime, no interpreter.</p>
+  <p>Python finds a type mistake only when the faulty line runs. Rust finds it, and a whole class of memory
+  and threading mistakes, before the program can start. The cost is a slower edit-compile cycle and a
+  compiler that says no often. Rust developers describe this as "fighting the borrow checker" while
+  learning, and "if it compiles, it usually works" afterwards.</p>
+
+  <svg class="diagram" viewBox="0 0 620 318" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="'Nimbus Sans','Liberation Sans',sans-serif">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f3756"/></marker>
+    </defs>
+    <text x="130" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6b3f">Python</text>
+    <text x="490" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1f3756">Rust</text>
+    <rect x="20" y="32" width="220" height="44" rx="7" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="130" y="52" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">hello.py</text>
+    <text x="130" y="68" text-anchor="middle" font-size="11" fill="#5b6470">source text</text>
+    <line x1="130" y1="76" x2="130" y2="104" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a1)"/>
+    <rect x="20" y="106" width="220" height="44" rx="7" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="130" y="126" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">python hello.py</text>
+    <text x="130" y="142" text-anchor="middle" font-size="11" fill="#5b6470">compiles to bytecode at start-up</text>
+    <line x1="130" y1="150" x2="130" y2="178" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a1)"/>
+    <rect x="20" y="180" width="220" height="44" rx="7" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="130" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="#16273d">CPython interpreter</text>
+    <text x="130" y="216" text-anchor="middle" font-size="11" fill="#5b6470">runs the bytecode; GC frees memory</text>
+    <rect x="20" y="250" width="220" height="44" rx="7" fill="#fcf0f0" stroke="#b03a3a" stroke-width="1.5"/>
+    <text x="130" y="270" text-anchor="middle" font-size="12" font-weight="700" fill="#b03a3a">Type errors found here,</text>
+    <text x="130" y="286" text-anchor="middle" font-size="12" font-weight="700" fill="#b03a3a">when the bad line runs</text>
+    <line x1="130" y1="224" x2="130" y2="248" stroke="#b03a3a" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <rect x="380" y="32" width="220" height="44" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="490" y="52" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">src/main.rs</text>
+    <text x="490" y="68" text-anchor="middle" font-size="11" fill="#5b6470">source text</text>
+    <line x1="490" y1="76" x2="490" y2="104" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a1)"/>
+    <rect x="380" y="106" width="220" height="44" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="490" y="126" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">cargo build</text>
+    <text x="490" y="142" text-anchor="middle" font-size="11" fill="#5b6470">checks types, ownership, borrows</text>
+    <line x1="490" y1="150" x2="490" y2="178" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a1)"/>
+    <rect x="380" y="180" width="220" height="44" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="490" y="200" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">target/debug/tutorial</text>
+    <text x="490" y="216" text-anchor="middle" font-size="11" fill="#5b6470">native machine code</text>
+    <line x1="490" y1="224" x2="490" y2="248" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a1)"/>
+    <rect x="380" y="250" width="220" height="44" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="490" y="270" text-anchor="middle" font-size="13" font-weight="700" fill="#16273d">The CPU runs it directly</text>
+    <text x="490" y="286" text-anchor="middle" font-size="11" fill="#5b6470">no interpreter, no garbage collector</text>
+    <line x1="350" y1="128" x2="378" y2="128" stroke="#2f6b3f" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="310" y="118" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2f6b3f">Type and</text>
+    <text x="310" y="133" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2f6b3f">memory errors</text>
+    <text x="310" y="148" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2f6b3f">stop the build</text>
+  </svg>
+  <p class="caption">Figure 1. Python checks types while running; Rust checks types and memory use before running.</p>
+
+  <h3 class="sub" id="s1-3">1.3&nbsp;&nbsp;Editions and Releases</h3>
+  <p>A new stable Rust version ships every six weeks, and old code keeps compiling. Larger changes arrive
+  through <strong>editions</strong>: 2015, 2018, 2021 and 2024. Each crate names its edition in
+  <code>Cargo.toml</code>, and crates of different editions work together. The companion project uses the
+  2024 edition. Code written for 2018 or 2021 looks almost the same; section 9.3 points out the one piece of
+  2024-only syntax the project uses.</p>
+
+  <h3 class="sub" id="s1-4">1.4&nbsp;&nbsp;Python and Rust Side by Side</h3>
+  <table class="data">
+    <thead><tr><th style="width:22%">Topic</th><th>Python</th><th>Rust</th></tr></thead>
+    <tbody>
+      <tr><td>Typing</td><td>Dynamic; type hints are optional and not enforced</td><td>Static; every type checked at compile time, mostly inferred</td></tr>
+      <tr><td>Blocks</td><td>Indentation</td><td><code>{ }</code> braces; statements end in <code>;</code></td></tr>
+      <tr><td>Memory</td><td>Reference counting plus a cycle collector</td><td>Ownership: each value has one owner and is freed when the owner goes out of scope</td></tr>
+      <tr><td>Missing values</td><td><code>None</code>, allowed anywhere</td><td>No null. <code>Option&lt;T&gt;</code> where a value may be missing</td></tr>
+      <tr><td>Errors</td><td>Exceptions</td><td><code>Result&lt;T, E&gt;</code> return values; <code>panic!</code> for bugs</td></tr>
+      <tr><td>Objects</td><td>Classes with inheritance</td><td>Structs and enums with methods; traits instead of inheritance</td></tr>
+      <tr><td>Variables</td><td>Can always be reassigned</td><td>Immutable unless declared <code>mut</code></td></tr>
+      <tr><td>Threads</td><td>Default CPython build has the GIL: one thread runs Python at a time</td><td>Threads run truly in parallel; data races are compile errors</td></tr>
+      <tr><td>Speed</td><td>Interpreted; slow for CPU-heavy work</td><td>Compiled to machine code; comparable to C and C++</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s2"><span class="snum">2</span> The Companion Project</h2>
+  <p>The companion project is a Cargo <strong>workspace</strong> with two <strong>packages</strong>. A
+  package is a directory with a <code>Cargo.toml</code>; it builds into one library, one or more programs,
+  or both. A workspace builds several packages together and shares one lock file and one
+  <code>target/</code> directory. A Python monorepo with several <code>pyproject.toml</code> files managed by
+  one <code>uv</code> workspace is the closest match.</p>
+
+  <svg class="diagram" viewBox="0 0 620 200" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="'Nimbus Sans','Liberation Sans',sans-serif">
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f3756"/></marker>
+    </defs>
+    <rect x="200" y="8" width="220" height="40" rx="6" fill="#f3f6f9" stroke="#46647f" stroke-width="1.5" stroke-dasharray="5 3"/>
+    <text x="310" y="27" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">Cargo.toml [workspace]</text>
+    <text x="310" y="42" text-anchor="middle" font-size="10.5" fill="#5b6470">one lock file, one target/ directory</text>
+    <rect x="215" y="110" width="190" height="62" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="2"/>
+    <text x="310" y="132" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">src/lib.rs</text>
+    <text x="310" y="149" text-anchor="middle" font-size="11" fill="#5b6470">library: chapters</text>
+    <text x="310" y="164" text-anchor="middle" font-size="11" fill="#5b6470">+ order system</text>
+    <rect x="12" y="110" width="160" height="62" rx="7" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="92" y="132" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">src/main.rs</text>
+    <text x="92" y="149" text-anchor="middle" font-size="11" fill="#5b6470">program: runs</text>
+    <text x="92" y="164" text-anchor="middle" font-size="11" fill="#5b6470">the chapter demos</text>
+    <rect x="448" y="110" width="160" height="62" rx="7" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="528" y="132" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">api/  tests/</text>
+    <text x="528" y="149" text-anchor="middle" font-size="11" fill="#5b6470">web API (axum)</text>
+    <text x="528" y="164" text-anchor="middle" font-size="11" fill="#5b6470">and the tests</text>
+    <line x1="172" y1="141" x2="211" y2="141" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a2)"/>
+    <line x1="448" y1="141" x2="409" y2="141" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="192" y="190" text-anchor="middle" font-size="10.5" fill="#1f3756">uses</text>
+    <text x="428" y="190" text-anchor="middle" font-size="10.5" fill="#1f3756">use</text>
+    <line x1="310" y1="48" x2="310" y2="106" stroke="#46647f" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="250" y1="48" x2="92" y2="106" stroke="#46647f" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="370" y1="48" x2="528" y2="106" stroke="#46647f" stroke-width="1" stroke-dasharray="3 3"/>
+  </svg>
+  <p class="caption">Figure 2. The workspace. The demo program, the web API and the tests all use the library in <code>src/lib.rs</code>.</p>
+
+  <h3 class="sub" id="s2-1">2.1&nbsp;&nbsp;Files</h3>
+  <table class="data">
+    <thead><tr><th style="width:40%">Path</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td class="c">Cargo.toml</td><td>The <code>tutorial</code> package and the workspace that adds <code>api/</code>.</td></tr>
+      <tr><td class="c">src/main.rs</td><td>Entry point. Runs one chapter's demo or all of them.</td></tr>
+      <tr><td class="c">src/lib.rs</td><td>The library root: lists every module.</td></tr>
+      <tr><td class="c">src/ch03_basics.rs &hellip; ch14_concurrency.rs</td><td>One file per book chapter. The number in the file name is the chapter number.</td></tr>
+      <tr><td class="c">src/orders/</td><td>The order system: products, orders, discounts, checkout.</td></tr>
+      <tr><td class="c">src/ch15_orders.rs</td><td>Runs the order system end to end.</td></tr>
+      <tr><td class="c">src/money.rs</td><td>Formats amounts held as whole cents.</td></tr>
+      <tr><td class="c">tests/</td><td>Integration tests for <code>BankAccount</code> and <code>OrderService</code>.</td></tr>
+      <tr><td class="c">api/</td><td>The <code>tutorial-api</code> package: a web API over the order system.</td></tr>
+      <tr><td class="c">Cargo.lock</td><td>Exact versions of every dependency (Python: <code>uv.lock</code>). Committed.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub" id="s2-2">2.2&nbsp;&nbsp;The cargo Command</h3>
+  <p>One command, <code>cargo</code>, replaces the separate Python tools. Run these from the repo root. If
+  <code>cargo</code> is not found, install Rust with rustup (see the README) and open a new terminal.</p>
+  <table class="data">
+    <thead><tr><th style="width:26%">Task</th><th>Python</th><th>Rust</th></tr></thead>
+    <tbody>
+      <tr><td>Run all chapters</td><td class="c">python main.py</td><td class="c">cargo run</td></tr>
+      <tr><td>Run chapter 6</td><td class="c">python main.py 6</td><td class="c">cargo run -- 6</td></tr>
+      <tr><td>Type-check only (fast)</td><td class="c">mypy .</td><td class="c">cargo check</td></tr>
+      <tr><td>Compile</td><td>(none)</td><td class="c">cargo build</td></tr>
+      <tr><td>Run tests</td><td class="c">pytest</td><td class="c">cargo test</td></tr>
+      <tr><td>Lint</td><td class="c">ruff check</td><td class="c">cargo clippy</td></tr>
+      <tr><td>Format code</td><td class="c">ruff format</td><td class="c">cargo fmt</td></tr>
+      <tr><td>Add a package</td><td class="c">uv add requests</td><td class="c">cargo add reqwest</td></tr>
+      <tr><td>New project</td><td class="c">uv init</td><td class="c">cargo new my_app</td></tr>
+      <tr><td>Optimised build</td><td>(none)</td><td class="c">cargo build --release</td></tr>
+      <tr><td>Virtual env</td><td class="c">.venv</td><td>None needed. Dependencies are per project.</td></tr>
+    </tbody>
+  </table>
+  <p>The demo numbers match this book's chapter numbers: <code>cargo run -- 6</code> runs the code for
+  chapter 6, and the valid numbers are 3 to 15. The <code>--</code> separates Cargo's own options from the
+  arguments passed to your program. <code>cargo run -p tutorial-api</code> runs the other package, the web
+  API. Debug builds (the default) compile quickly and run slowly; <code>--release</code> is the reverse.</p>
+
+  <h3 class="sub" id="s2-3">2.3&nbsp;&nbsp;Cargo.toml</h3>
+  <p><code>Cargo.toml</code> lists a package's name, edition and dependencies. It is the counterpart of
+  <code>pyproject.toml</code>. The root one, without its comments:</p>
+:::toml Cargo.toml
+[package]
+name = "tutorial"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "time"] }
+
+[workspace]
+members = ["api"]
+:::
+  <ul class="tight">
+    <li><code>edition</code>: which edition's rules this crate follows (section 1.3).</li>
+    <li><code>rust-version</code>: the oldest Rust that can build it (Python: <code>requires-python</code>).
+    An older compiler stops with a message naming the version needed.</li>
+    <li><code>[dependencies]</code>: crates from crates.io. <code>"1.0.229"</code> means "1.0.229 or any later
+    1.x version" (Python: <code>&gt;=1.0.229,&lt;2</code>); <code>Cargo.lock</code> records the exact version chosen.</li>
+    <li><code>features</code>: optional parts of a crate to switch on, like Python extras
+    (<code>pip install "fastapi[all]"</code>). <code>serde</code>'s <code>derive</code> feature is used in
+    chapter 15; <code>tokio</code> is used in chapter 14.</li>
+    <li><code>[workspace]</code>: adds <code>api/</code> as a second package.</li>
+  </ul>
+
+  <h3 class="sub" id="s2-4">2.4&nbsp;&nbsp;Modules: lib.rs and main.rs</h3>
+  <p>A Rust package can hold a <strong>library</strong> (<code>src/lib.rs</code>) and a
+  <strong>program</strong> (<code>src/main.rs</code>). The program uses the library like any outside code
+  would. Each <code>pub mod name;</code> line in <code>lib.rs</code> tells the compiler to include the file
+  <code>src/name.rs</code> (or <code>src/name/mod.rs</code>) as a <strong>module</strong>. A module is
+  Python's module: a namespace, one per file. Unlike Python, files are not found automatically; a file
+  nobody declares with <code>mod</code> is not compiled.</p>
+:::file src/lib.rs :: pub mod ch03_basics ..> pub mod orders
+  <p><code>pub</code> makes an item public. Everything in Rust is private to its module unless marked
+  <code>pub</code>, and the compiler enforces it. Python's leading underscore is only a convention.</p>
+
+  <h3 class="sub" id="s2-5">2.5&nbsp;&nbsp;main.rs Walkthrough</h3>
+  <p><code>main.rs</code> reads the command line and calls each chapter's <code>run</code> function. It uses
+  syntax from the next few chapters; skim it now and return to it after chapter 6. Execution starts at
+  <code>fn main()</code>, as Python starts at <code>if __name__ == "__main__":</code>.</p>
+:::file src/main.rs :: use tutorial:: :: let args ..> for chapter in chapters
+  <ul class="tight">
+    <li><code>use tutorial::{ch03_basics, ...};</code> imports modules from the library. It is Python's
+    <code>from tutorial import ch03_basics, ...</code>. <code>::</code> is Rust's path separator, where Python
+    uses <code>.</code>.</li>
+    <li><code>Vec&lt;String&gt;</code> is a growable list of strings. <code>collect()</code> gathers the
+    arguments into it (chapter 12).</li>
+    <li><code>arg.parse()</code> converts text to a number. It returns a <code>Result</code> (chapter 9), and
+    <code>.expect(...)</code> stops the program with that message if the text is not a number.</li>
+    <li><code>match chapter</code> picks the branch for the number; <code>_</code> matches anything else
+    (chapter 5). There is no fall-through between arms, so there is no <code>break</code>.</li>
+    <li><code>println!</code> ends in <code>!</code> because it is a <strong>macro</strong>: code that
+    generates code at compile time. It checks the format string against its arguments while compiling.</li>
+  </ul>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s3"><span class="snum">3</span> Syntax Basics</h2>
+  <p>This chapter covers what every Rust file looks like: functions, variables, printing and blocks. File:
+  <code>src/ch03_basics.rs</code>. Run it with <code>cargo run -- 3</code>.</p>
+
+  <h3 class="sub" id="s3-1">3.1&nbsp;&nbsp;The Whole File</h3>
+:::file src/ch03_basics.rs :: pub fn run() :: fn square
+:::out
+Ada published the first program in 1843.
+count is 1
+price 19.99, padded [    1843], debug "Ada"
+Hello, Ada! is 11 bytes long
+a year later it was 1844
+area is 12
+square(7) is 49
+:::
+
+  <h3 class="sub" id="s3-2">3.2&nbsp;&nbsp;Reading It</h3>
+  <ul class="tight">
+    <li><strong><code>fn</code></strong> defines a function (Python: <code>def</code>). <code>pub</code>
+    makes it callable from other modules; <code>square</code> has no <code>pub</code>, so only this file can
+    call it.</li>
+    <li><strong><code>let</code></strong> creates a variable. Its type is inferred from the value, but it is
+    still fixed: <code>year</code> is an <code>i32</code> (32-bit integer) forever.</li>
+    <li><strong>Immutable by default.</strong> A plain <code>let</code> variable cannot be changed.
+    <code>let mut</code> allows changes. Python has no equivalent; the closest is a naming convention for
+    constants.</li>
+    <li><strong>Formatting.</strong> <code>println!("{name}")</code> is Python's <code>print(f"{name}")</code>.
+    Format specs follow a colon, as in Python: <code>{price:.2}</code>, <code>{year:&gt;8}</code>.
+    <code>{:?}</code> prints the <em>debug</em> form, which for a string includes the quotes, like
+    <code>repr()</code>. <code>{}</code> with an argument after the string fills in an expression.</li>
+    <li><strong>Shadowing.</strong> <code>let year = year + 1;</code> makes a new variable that hides the
+    old one. It is common in Rust, for example to convert a value and keep the same name.</li>
+    <li><strong>Blocks are expressions.</strong> The value of a <code>{ }</code> block is its last
+    expression, written <em>without</em> a semicolon. <code>square</code> returns <code>n * n</code> this
+    way. A <code>return</code> keyword exists, but is used only to leave a function early.</li>
+    <li><strong>Types in signatures are required.</strong> <code>fn square(n: i32) -&gt; i32</code> is
+    Python's <code>def square(n: int) -&gt; int</code>, except the compiler enforces it.</li>
+  </ul>
+  <div class="note"><span class="lbl">The semicolon matters.</span> <code>n * n</code> is a value;
+  <code>n * n;</code> is a statement that throws the value away. Adding a stray semicolon to the last line of
+  a function is a common beginner error; drill 2 shows the message it produces.</div>
+
+  <h3 class="sub" id="s3-3">3.3&nbsp;&nbsp;Comments and Naming</h3>
+  <table class="data">
+    <thead><tr><th style="width:30%">Kind</th><th>Syntax</th><th style="width:30%">Python</th></tr></thead>
+    <tbody>
+      <tr><td>Line comment</td><td class="c">// text</td><td class="c"># text</td></tr>
+      <tr><td>Doc comment on an item</td><td class="c">/// text</td><td>A docstring</td></tr>
+      <tr><td>Doc comment on a module</td><td class="c">//! text</td><td>A module docstring</td></tr>
+      <tr><td>Functions, variables, modules</td><td class="c">snake_case</td><td class="c">snake_case</td></tr>
+      <tr><td>Types and traits</td><td class="c">CamelCase</td><td class="c">CamelCase</td></tr>
+      <tr><td>Constants</td><td class="c">const MAX: u32 = 10;</td><td class="c">MAX = 10</td></tr>
+    </tbody>
+  </table>
+  <p>The naming rules are the same as Python's, and the compiler warns when you break them.
+  <code>cargo doc --open</code> turns doc comments into a website.</p>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s4"><span class="snum">4</span> Types and Variables</h2>
+  <p>Rust has more number types than Python, two string types, and no <code>None</code> that can appear
+  anywhere. File: <code>src/ch04_types.rs</code>.</p>
+
+  <h3 class="sub" id="s4-1">4.1&nbsp;&nbsp;Numbers, Booleans and Characters</h3>
+:::file src/ch04_types.rs :: let age: i32 ..> println!("wrapping_add
+:::out
+36 8100000000 0.75 true R
+7 / 2 = 3, 7.0 / 2.0 = 3.5, 7 % 2 = 1
+scaled = 27
+checked_add: None
+wrapping_add: 4
+:::
+  <table class="data">
+    <thead><tr><th style="width:28%">Rust type</th><th>Holds</th><th style="width:22%">Python</th></tr></thead>
+    <tbody>
+      <tr><td class="c">i8 i16 i32 i64 i128</td><td>Signed integers of that many bits. <code>i32</code> is the default.</td><td class="c">int</td></tr>
+      <tr><td class="c">u8 u16 u32 u64 u128</td><td>Unsigned integers (zero and up). <code>u8</code> is a byte.</td><td class="c">int</td></tr>
+      <tr><td class="c">usize, isize</td><td>Pointer-sized integers. Lengths and indexes are <code>usize</code>.</td><td class="c">int</td></tr>
+      <tr><td class="c">f64, f32</td><td>Floating point. <code>f64</code> is the default.</td><td class="c">float</td></tr>
+      <tr><td class="c">bool</td><td><code>true</code> or <code>false</code> (lower case)</td><td class="c">bool</td></tr>
+      <tr><td class="c">char</td><td>One Unicode character, in single quotes: <code>'R'</code></td><td>(a 1-character <code>str</code>)</td></tr>
+    </tbody>
+  </table>
+  <ul class="tight">
+    <li><strong>No mixing.</strong> <code>age * ratio</code> does not compile, because one is an
+    <code>i32</code> and the other an <code>f64</code>. Python would convert silently. <code>age as f64</code>
+    converts explicitly.</li>
+    <li><strong>Integer division truncates</strong>: <code>7 / 2</code> is 3. There is no separate
+    <code>//</code> operator.</li>
+    <li><strong>Overflow.</strong> Python integers grow without limit. A Rust <code>u8</code> holds 0 to 255.
+    In a debug build, arithmetic that overflows stops the program with a panic; in a release build it wraps
+    around. When overflow is possible, say what you want: <code>checked_add</code> returns
+    <code>None</code> on overflow, <code>wrapping_add</code> wraps (250 + 10 = 4).</li>
+    <li><code>8_100_000_000</code>: underscores in numbers are ignored, as in Python.</li>
+  </ul>
+
+  <h3 class="sub" id="s4-2">4.2&nbsp;&nbsp;Two String Types</h3>
+:::file src/ch04_types.rs :: let mut owned: String ..> owned.split
+:::out
+hello, world / literals are &str
+upper: HELLO, WORLD, words: 2
+:::
+  <p>This confuses every newcomer, and interviewers ask about it.</p>
+  <ul class="tight">
+    <li><strong><code>String</code></strong> owns its text, stored on the heap. It can grow
+    (<code>push_str</code>). Create one with <code>String::from("...")</code>,
+    <code>"...".to_string()</code> or <code>format!</code>.</li>
+    <li><strong><code>&amp;str</code></strong> ("string slice", said "stir" or "string ref") is a borrowed
+    view of text owned by something else: a <code>String</code>, or the program file itself for a literal
+    such as <code>"world"</code>. It cannot grow.</li>
+    <li>Function parameters are usually <code>&amp;str</code>, because a <code>&amp;String</code> converts to
+    a <code>&amp;str</code> automatically, so the function accepts both. Struct fields are usually
+    <code>String</code>, because the struct should own its data.</li>
+    <li>Both are always valid UTF-8. <code>s[0]</code> does not compile, because one character can be several
+    bytes. Use <code>s.chars()</code> to walk characters.</li>
+  </ul>
+  <p>Chapter 6 explains the words "own" and "borrow". Python has one <code>str</code> type because its
+  garbage collector decides when text is freed; in Rust, the type says who is responsible.</p>
+
+  <h3 class="sub" id="s4-3">4.3&nbsp;&nbsp;Tuples and Arrays</h3>
+:::file src/ch04_types.rs :: let point: ..> primes.len()
+:::out
+x=3 y=4.5 first prime=2 count=4
+:::
+  <p>Tuples work as in Python, including unpacking with <code>let (x, y) = point;</code>. Access one field
+  with <code>point.0</code>. An array <code>[i32; 4]</code> has a fixed length that is part of its type; the
+  growable list is <code>Vec</code> (chapter 10). Indexing past the end of either stops the program with a
+  panic instead of reading random memory.</p>
+
+  <h3 class="sub" id="s4-4">4.4&nbsp;&nbsp;No Null: Option</h3>
+:::file src/ch04_types.rs :: // No null. ..> z_at.unwrap_or(0)
+:::out
+Some(7) None
+z found? false, z position or 0: 0
+:::
+  <p>Rust has no <code>None</code>/<code>null</code> that any variable might hold. A value that may be
+  missing has the type <code>Option&lt;T&gt;</code>, which is either <code>Some(value)</code> or
+  <code>None</code>. <code>Option&lt;usize&gt;</code> and <code>usize</code> are different types, so you
+  cannot use a possibly-missing number as if it were present; the compiler makes you handle
+  <code>None</code> first. Python's <code>Optional[int]</code> hint says the same thing, but nothing enforces
+  it. Chapter 8 shows how to take an <code>Option</code> apart with <code>match</code>; chapter 9 shows its
+  helper methods.</p>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s5"><span class="snum">5</span> Control Flow</h2>
+  <p>Rust has <code>if</code>, <code>match</code>, and three loops: <code>for</code>, <code>while</code> and
+  <code>loop</code>. Conditions need no parentheses, but the braces are required. File:
+  <code>src/ch05_control_flow.rs</code>.</p>
+
+  <h3 class="sub" id="s5-1">5.1&nbsp;&nbsp;if Is an Expression</h3>
+:::file src/ch05_control_flow.rs :: let temperature ..> println!("{temperature}
+  <p>Because <code>if</code> produces a value, Rust needs no separate conditional expression; this is
+  Python's <code>"hot" if t &gt; 25 else ...</code>. Every branch must produce the same type. The
+  condition must be a <code>bool</code>: <code>if count</code> with a number does not compile, where
+  Python would test for non-zero.</p>
+
+  <h3 class="sub" id="s5-2">5.2&nbsp;&nbsp;match</h3>
+:::file src/ch05_control_flow.rs :: for score in ..> println!("{score} :: fn grade
+:::out
+95 -> A
+82 -> B
+71 -> C
+40 -> F
+:::
+  <p><code>match</code> compares a value against <strong>patterns</strong>, top to bottom, and runs the first
+  arm that fits. <code>90..=100</code> is an inclusive range; <code>_</code> matches anything. Python 3.10's
+  <code>match</code> statement is the closest equivalent, but Rust's is checked: if the arms do not cover
+  every possible value, the program does not compile. Delete the <code>_</code> arm and the compiler lists
+  the numbers you forgot. Chapter 8 uses <code>match</code> on enums, where this check matters most.</p>
+
+  <h3 class="sub" id="s5-3">5.3&nbsp;&nbsp;Loops</h3>
+:::file src/ch05_control_flow.rs :: let mut total ..> println!("first number
+:::out
+sum of 1..=5 is 15
+0: Python
+1: Rust
+2: SQL
+27 reaches 1 in 111 steps
+first number whose square passes 50: 8
+:::
+  <table class="data">
+    <thead><tr><th style="width:44%">Python</th><th>Rust</th></tr></thead>
+    <tbody>
+      <tr><td class="c">for n in range(1, 6):</td><td class="c">for n in 1..=5 {</td></tr>
+      <tr><td class="c">for n in range(5):</td><td class="c">for n in 0..5 {</td></tr>
+      <tr><td class="c">for i, x in enumerate(xs):</td><td class="c">for (i, x) in xs.iter().enumerate() {</td></tr>
+      <tr><td class="c">while n != 1:</td><td class="c">while n != 1 {</td></tr>
+      <tr><td class="c">while True:</td><td class="c">loop {</td></tr>
+      <tr><td class="c">break / continue</td><td class="c">break / continue</td></tr>
+    </tbody>
+  </table>
+  <p><code>loop</code> is an endless loop that can return a value through <code>break value;</code>. Rust has
+  no C-style <code>for (i = 0; i &lt; n; i++)</code>, and no <code>++</code> operator; write
+  <code>i += 1</code>.</p>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s6"><span class="snum">6</span> Ownership and Borrowing</h2>
+  <p>Ownership is the idea that makes Rust different from every language you know, and the topic an
+  interviewer is most likely to probe. It replaces the garbage collector. File:
+  <code>src/ch06_ownership.rs</code>.</p>
+
+  <h3 class="sub" id="s6-1">6.1&nbsp;&nbsp;The Three Rules</h3>
+  <ol class="tight">
+    <li>Each value has one <strong>owner</strong>: the variable (or struct field, or collection) that holds it.</li>
+    <li>There is only one owner at a time. Assigning or passing the value <strong>moves</strong> ownership.</li>
+    <li>When the owner goes out of scope (its closing <code>}</code>), the value is <strong>dropped</strong>:
+    its memory is freed, immediately and deterministically.</li>
+  </ol>
+  <p>In Python, <code>b = a</code> makes two names for one object, and the garbage collector frees the object
+  some time after the last name disappears. In Rust, <code>let b = a;</code> hands the value to
+  <code>b</code>, and <code>a</code> may not be used again. Because exactly one owner exists, the compiler
+  knows exactly where to free the memory, and no garbage collector is needed.</p>
+
+  <svg class="diagram" viewBox="0 0 620 210" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="'Nimbus Sans','Liberation Sans',sans-serif">
+    <defs>
+      <marker id="a6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f3756"/></marker>
+      <marker id="a6g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6b3f"/></marker>
+    </defs>
+    <text x="150" y="18" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1f3756">Move: let b = a;</text>
+    <text x="470" y="18" text-anchor="middle" font-size="13.5" font-weight="700" fill="#2f6b3f">Borrow: count_words(&amp;doc)</text>
+    <!-- move -->
+    <rect x="20" y="40" width="90" height="36" rx="6" fill="#f3f3f3" stroke="#9aa4ae" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="65" y="63" text-anchor="middle" font-size="13" font-family="'Liberation Mono',monospace" fill="#9aa4ae">a</text>
+    <text x="65" y="94" text-anchor="middle" font-size="10.5" fill="#b03a3a">no longer usable</text>
+    <rect x="20" y="110" width="90" height="36" rx="6" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="65" y="133" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">b</text>
+    <text x="65" y="164" text-anchor="middle" font-size="10.5" fill="#5b6470">owner</text>
+    <rect x="170" y="80" width="130" height="44" rx="6" fill="#fbf6ec" stroke="#b08a3a" stroke-width="1.5"/>
+    <text x="235" y="100" text-anchor="middle" font-size="12" font-family="'Liberation Mono',monospace" fill="#16273d">"report.pdf"</text>
+    <text x="235" y="116" text-anchor="middle" font-size="10.5" fill="#5b6470">text on the heap</text>
+    <line x1="110" y1="128" x2="166" y2="108" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a6)"/>
+    <text x="150" y="196" text-anchor="middle" font-size="11" fill="#1c1c1c">One owner. Freed when b's scope ends.</text>
+    <!-- borrow -->
+    <rect x="340" y="110" width="90" height="36" rx="6" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="385" y="133" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">doc</text>
+    <text x="385" y="164" text-anchor="middle" font-size="10.5" fill="#5b6470">owner</text>
+    <rect x="340" y="40" width="90" height="36" rx="6" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="385" y="63" text-anchor="middle" font-size="13" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">text</text>
+    <text x="385" y="94" text-anchor="middle" font-size="10.5" fill="#2f6b3f">&amp;str: borrows</text>
+    <rect x="480" y="80" width="130" height="44" rx="6" fill="#fbf6ec" stroke="#b08a3a" stroke-width="1.5"/>
+    <text x="545" y="100" text-anchor="middle" font-size="12" font-family="'Liberation Mono',monospace" fill="#16273d">"Quarterly..."</text>
+    <text x="545" y="116" text-anchor="middle" font-size="10.5" fill="#5b6470">text on the heap</text>
+    <line x1="430" y1="128" x2="476" y2="110" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a6)"/>
+    <line x1="430" y1="58" x2="476" y2="94" stroke="#2f6b3f" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a6g)"/>
+    <text x="470" y="196" text-anchor="middle" font-size="11" fill="#1c1c1c">The borrow ends when the function returns.</text>
+  </svg>
+  <p class="caption">Figure 3. A move transfers the owner; a borrow lends access while the owner keeps the value.</p>
+
+  <h3 class="sub" id="s6-2">6.2&nbsp;&nbsp;Moves, Clones and Copies</h3>
+:::file src/ch06_ownership.rs :: // 1. Move ..> println!("the function took
+:::file src/ch06_ownership.rs :: fn take_ownership
+:::out
+b = report.pdf
+b = report.pdf, c = report.pdf
+x = 5, y = 5
+the function took a title of 13 bytes
+:::
+  <p><strong>Move.</strong> After <code>let b = a;</code>, using <code>a</code> is a compile error. Remove
+  the <code>//</code> in front of <code>println!("{a}")</code> and <code>cargo build</code> reports:</p>
+:::out cargo build
+error[E0382]: borrow of moved value: `a`
+ --> src/ch06_ownership.rs:7:16
+  |
+5 |     let a = String::from("report.pdf");
+  |         - move occurs because `a` has type `String`, which does not implement the `Copy` trait
+6 |     let b = a;
+  |             - value moved here
+7 |     println!("{a}");
+  |                ^ value borrowed here after move
+  |
+help: consider cloning the value if the performance cost is acceptable
+  |
+6 |     let b = a.clone();
+  |              ++++++++
+:::
+  <ul class="tight">
+    <li><strong>Clone.</strong> <code>.clone()</code> makes an independent deep copy (Python:
+    <code>copy.deepcopy</code>). It costs time and memory, so Rust never does it implicitly.</li>
+    <li><strong>Copy.</strong> Small fixed-size types (integers, floats, <code>bool</code>, <code>char</code>,
+    and tuples of them) implement the <code>Copy</code> trait. Assigning them copies the bits and both
+    variables stay usable, as <code>x</code> and <code>y</code> show.</li>
+    <li><strong>Passing to a function moves too.</strong> <code>take_ownership(title)</code> moves the
+    <code>String</code> into the function, which frees it when it returns. Afterwards <code>title</code> is
+    unusable in <code>run</code>.</li>
+  </ul>
+  <p>Read the compiler error above line by line. Rust's errors name the rule, point at each line involved and
+  often suggest the fix. <code>rustc --explain E0382</code> prints a longer explanation with examples.</p>
+
+  <h3 class="sub" id="s6-3">6.3&nbsp;&nbsp;Borrowing</h3>
+  <p>Moving everything into functions would be impractical, so Rust lets you <strong>borrow</strong>: create a
+  <strong>reference</strong> that gives access to a value without taking ownership.</p>
+:::file src/ch06_ownership.rs :: // 5. Borrow ..> println!("log =
+:::file src/ch06_ownership.rs :: fn count_words :: fn add_entry
+:::out
+'Quarterly Report for Q3' has 4 words
+log = ["started", "finished"]
+:::
+  <ul class="tight">
+    <li><code>&amp;doc</code> creates a <strong>shared reference</strong> (type <code>&amp;String</code>,
+    accepted as <code>&amp;str</code>). The function can read but not change the value.</li>
+    <li><code>&amp;mut log</code> creates a <strong>mutable reference</strong>. The function can change the
+    caller's vector. Both the variable (<code>let mut log</code>) and the borrow (<code>&amp;mut</code>) must
+    say <code>mut</code>, so a reader can see every place a value might change.</li>
+    <li>When the function returns, the borrow ends and the owner has full control again.</li>
+  </ul>
+  <p>In Python every argument is passed by reference and any function can change a mutable argument. In Rust
+  the signature says which: <code>T</code> (takes ownership), <code>&amp;T</code> (reads),
+  <code>&amp;mut T</code> (changes).</p>
+
+  <h3 class="sub" id="s6-4">6.4&nbsp;&nbsp;The Borrow Rule</h3>
+  <p>At any moment, a value may have <strong>either</strong> any number of shared references <strong>or</strong>
+  exactly one mutable reference, never both. And no reference may outlive the value it points to.</p>
+:::file src/ch06_ownership.rs :: // 7. The borrow rule ..> println!("scores
+:::out
+first = 10
+scores = [10, 20, 30, 40]
+:::
+  <p>Why the rule exists: <code>push</code> may move the vector's contents to a bigger block of memory. If
+  that happened while <code>first</code> still pointed into the old block, <code>first</code> would point at
+  freed memory. In C++ that is a real, common bug. Rust rejects the program instead. Move the
+  <code>push</code> above the <code>println!</code> that uses <code>first</code>, and the compiler says:</p>
+:::out cargo build
+error[E0502]: cannot borrow `scores` as mutable because it is also borrowed as immutable
+  --> src/ch06_ownership.rs:39:5
+   |
+38 |     let first = &scores[0];
+   |                  ------ immutable borrow occurs here
+39 |     scores.push(40);
+   |     ^^^^^^^^^^^^^^^ mutable borrow occurs here
+40 |     //                   // because it is also borrowed as immutable
+41 |     println!("first = {first}");
+   |                        ----- immutable borrow later used here
+:::
+  <p>A borrow lasts only until its last use, not to the end of the block, so the final <code>push</code> in
+  the file is allowed. The part of the compiler that checks these rules is the <strong>borrow
+  checker</strong>.</p>
+  <div class="note"><span class="lbl">In one sentence.</span> Ownership means every value has one owner that
+  frees it at the end of its scope; borrowing lends access through references, with many readers or one
+  writer at a time, and the compiler checks all of it, so Rust is memory-safe without a garbage
+  collector.</div>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s7"><span class="snum">7</span> Structs and Methods</h2>
+  <p>Rust has no classes. A <strong>struct</strong> holds data, and an <strong><code>impl</code></strong> block
+  attaches methods to it. Together they do most of what a Python class does, without inheritance (chapter 11
+  covers what replaces it). File: <code>src/ch07_structs.rs</code>.</p>
+
+  <h3 class="sub" id="s7-1">7.1&nbsp;&nbsp;A Struct: BankAccount</h3>
+  <p><code>BankAccount</code> shows <strong>encapsulation</strong>: the data is private, and outside code can
+  change it only through methods that check each change. Money is held as whole cents in an
+  <code>i64</code>, never as a float; <code>120_00</code> is 120.00 written so the cents stand out.</p>
+:::file src/ch07_structs.rs :: pub struct BankAccount :: impl BankAccount
+  <p>The same class in Python, for comparison:</p>
+:::py
+class BankAccount:
+    def __init__(self, id: str, owner: str):
+        self.id = id
+        self.owner = owner
+        self._balance_cents = 0
+
+    @property
+    def balance(self) -> int:
+        return self._balance_cents
+
+    def deposit(self, cents: int) -> None:
+        if cents <= 0:
+            raise ValueError(f"deposit must be positive, got {cents}")
+        self._balance_cents += cents
+:::
+
+  <h3 class="sub" id="s7-2">7.2&nbsp;&nbsp;Reading the Struct</h3>
+  <ul class="tight">
+    <li><strong>Fields</strong> are declared once, with types, in the <code>struct</code>. Without
+    <code>pub</code> they are private to this module. Python's <code>_balance</code> is a convention; Rust's
+    privacy is enforced.</li>
+    <li><strong><code>impl BankAccount { ... }</code></strong> holds the methods. A type can have several
+    <code>impl</code> blocks.</li>
+    <li><strong><code>new</code></strong> is an <strong>associated function</strong>: it has no
+    <code>self</code>, so it is called on the type, <code>BankAccount::new(...)</code>. Rust has no constructor
+    keyword; <code>new</code> is a naming convention. The struct literal
+    <code>BankAccount { id: ..., owner: ..., balance_cents: 0 }</code> builds the value.</li>
+    <li><strong>The three kinds of <code>self</code></strong> are chapter 6's rules applied to methods:
+    <code>&amp;self</code> borrows the object to read it (<code>balance</code>), <code>&amp;mut self</code>
+    borrows it to change it (<code>deposit</code>), and plain <code>self</code> takes ownership, consuming the
+    object. Python's <code>self</code> is always the first kind and the second at once.</li>
+    <li><strong>Errors are return values.</strong> <code>deposit</code> returns
+    <code>Result&lt;(), String&gt;</code>: either <code>Ok(())</code> (success, no value; <code>()</code> is
+    the empty tuple, Rust's "nothing") or <code>Err(message)</code>. Chapter 9 covers this fully.</li>
+    <li><strong><code>#[derive(Debug)]</code></strong> is an <strong>attribute</strong> that generates code:
+    here, the ability to print the struct with <code>{:?}</code>.</li>
+  </ul>
+
+  <h3 class="sub" id="s7-3">7.3&nbsp;&nbsp;Using It</h3>
+:::file src/ch07_structs.rs :: let mut account = BankAccount ..> println!("{account:?}
+:::out
+ACC-0001 Ada: 120.00
+Refused: insufficient funds: balance 120.00, requested 500.00
+Refused: deposit must be positive, got -5
+Ada now has 100.00
+BankAccount { id: "ACC-0001", owner: "Ada", balance_cents: 10000 }
+:::
+  <ul class="tight">
+    <li><code>let mut account</code>: the variable must be <code>mut</code>, because <code>deposit</code> takes
+    <code>&amp;mut self</code>.</li>
+    <li><code>.unwrap()</code> takes the success value out of a <code>Result</code> and stops the program if it
+    was an error. Fine in demos and tests, where an error means a bug.</li>
+    <li><code>match</code> handles both outcomes; <code>if let Err(message) = ...</code> handles only the
+    error. Both are chapter 8's pattern matching.</li>
+  </ul>
+
+  <h3 class="sub" id="s7-4">7.4&nbsp;&nbsp;Data Structs and derive</h3>
+:::file src/ch07_structs.rs :: pub struct Point :: impl Point :: pub struct Celsius :: impl Celsius
+:::out
+Point { x: 0.0, y: 0.0 } to Point { x: 3.0, y: 4.0 } is 5
+equal by value: true
+37 C is 98.6 F
+:::
+  <p><code>#[derive(...)]</code> asks the compiler to write standard behaviour for you, as
+  <code>@dataclass</code> writes <code>__init__</code>, <code>__repr__</code> and <code>__eq__</code>.</p>
+  <table class="data">
+    <thead><tr><th style="width:22%">Derive</th><th>Gives</th><th style="width:26%">Python</th></tr></thead>
+    <tbody>
+      <tr><td class="c">Debug</td><td>Printing with <code>{:?}</code></td><td class="c">__repr__</td></tr>
+      <tr><td class="c">Clone</td><td><code>.clone()</code>, an explicit deep copy</td><td class="c">copy.deepcopy</td></tr>
+      <tr><td class="c">Copy</td><td>Implicit copy on assignment (small types only)</td><td>(none)</td></tr>
+      <tr><td class="c">PartialEq</td><td><code>==</code> and <code>!=</code>, comparing fields</td><td class="c">__eq__</td></tr>
+      <tr><td class="c">Default</td><td><code>Type::default()</code> with zero/empty fields</td><td>default field values</td></tr>
+      <tr><td class="c">Hash, Eq</td><td>Use as a <code>HashMap</code> key or in a <code>HashSet</code></td><td class="c">__hash__</td></tr>
+    </tbody>
+  </table>
+  <p><code>Celsius(pub f64)</code> is a <strong>tuple struct</strong>: fields have positions, not names
+  (<code>body.0</code>). A one-field tuple struct is called a <strong>newtype</strong>. It costs nothing at run
+  time and stops you passing a Fahrenheit value where Celsius is expected.</p>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s8"><span class="snum">8</span> Enums and Pattern Matching</h2>
+  <p>A Rust <strong>enum</strong> is a type whose value is exactly one of a fixed list of
+  <strong>variants</strong>, and each variant can carry its own data. Python's <code>enum.Enum</code> covers
+  only the simplest case. Together with <code>match</code>, enums are how Rust code models "one of these
+  things". File: <code>src/ch08_enums.rs</code>.</p>
+
+  <h3 class="sub" id="s8-1">8.1&nbsp;&nbsp;Variants with Data</h3>
+:::file src/ch08_enums.rs :: pub enum Shape :: impl Shape
+  <p>Each variant can be shaped differently: <code>Circle</code> has a named field, <code>Rectangle</code> two,
+  <code>Square</code> one unnamed value. In <code>match self</code>, each arm's pattern names the variant and
+  binds its data to variables (<code>radius</code>, <code>width</code>, <code>height</code>, <code>side</code>).
+  <code>{ .. }</code> and <code>(_)</code> ignore the data.</p>
+:::file src/ch08_enums.rs :: let shapes = vec! ..> println!("Total area
+:::out
+Circle with area 3.14
+Rectangle with area 6.00
+Square with area 4.00
+Total area: 13.14
+:::
+  <p>In Python you would write a <code>Shape</code> base class with three subclasses, or a dataclass per shape
+  and an <code>isinstance</code> chain. The Rust version has a guarantee neither has: if you add a
+  <code>Triangle</code> variant, every <code>match</code> that does not handle it becomes a compile error.
+  Drill 5 shows this. Chapter 11 shows the other approach, a trait, which suits a list of types that other
+  code may extend.</p>
+
+  <h3 class="sub" id="s8-2">8.2&nbsp;&nbsp;Simple Variants</h3>
+:::file src/ch08_enums.rs :: pub enum Light :: impl Light
+:::out
+Red -> Green -> Yellow -> Red
+:::
+  <p>An enum with no data is Python's <code>enum.Enum</code>. <code>next</code> takes <code>self</code> by
+  value, which is fine because the derived <code>Copy</code> makes the enum copy instead of move.</p>
+
+  <h3 class="sub" id="s8-3">8.3&nbsp;&nbsp;Patterns</h3>
+:::file src/ch08_enums.rs :: fn describe
+:::out
+(0, 0) is the origin
+(5, 0) is on the x axis at 5
+(0, -2) is on the y axis at -2
+(3, 3) is on the diagonal at 3
+(1, 2) is at (1, 2)
+:::
+  <table class="data">
+    <thead><tr><th style="width:30%">Pattern</th><th>Matches</th></tr></thead>
+    <tbody>
+      <tr><td class="c">0, "text", 'c'</td><td>That exact value</td></tr>
+      <tr><td class="c">x</td><td>Anything, and binds it to the name <code>x</code></td></tr>
+      <tr><td class="c">_</td><td>Anything, without binding</td></tr>
+      <tr><td class="c">1..=9</td><td>A value in the inclusive range</td></tr>
+      <tr><td class="c">'a' | 'e' | 'i'</td><td>Any of the alternatives</td></tr>
+      <tr><td class="c">(x, 0)</td><td>A tuple whose second item is 0</td></tr>
+      <tr><td class="c">Shape::Square(side)</td><td>That variant, binding its data</td></tr>
+      <tr><td class="c">x if x &gt; 5</td><td>A <strong>match guard</strong>: the pattern, plus a condition</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub" id="s8-4">8.4&nbsp;&nbsp;Option Is an Enum</h3>
+  <p><code>Option&lt;T&gt;</code> from section 4.4 is defined in the standard library as an ordinary enum:
+  <code>enum Option&lt;T&gt; { Some(T), None }</code>. So you take it apart with <code>match</code>.</p>
+:::file src/ch08_enums.rs :: fn lookup :: for id in [1, 3] ..> println!("found
+:::out
+user 1 is Ada
+user 3 not found
+found Grace with if let
+:::
+  <p><code>if let PATTERN = value { ... }</code> is a <code>match</code> with one arm that you care about; the
+  other cases do nothing. Python's nearest code is <code>if (name := lookup(2)) is not None:</code>, but the
+  Rust version cannot forget the check, because the name exists only inside the block where the
+  <code>Some</code> matched.</p>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s9"><span class="snum">9</span> Error Handling: Result and Option</h2>
+  <p>Rust has no exceptions. A function that can fail returns <code>Result&lt;T, E&gt;</code>, an enum with two
+  variants: <code>Ok(T)</code> holding the value, or <code>Err(E)</code> holding the error. The failure is part
+  of the function's type, so callers cannot forget it exists. File: <code>src/ch09_errors.rs</code>.</p>
+
+  <h3 class="sub" id="s9-1">9.1&nbsp;&nbsp;Handling a Result</h3>
+:::file src/ch09_errors.rs :: fn parse_age
+  <p>The Python equivalent:</p>
+:::py
+def parse_age(text: str) -> int:
+    try:
+        return int(text.strip())
+    except ValueError as e:
+        raise ValueError(f"'{text}' is not an age: {e}")
+:::
+  <p><code>parse::&lt;u32&gt;()</code> converts text to a number and returns
+  <code>Result&lt;u32, ParseIntError&gt;</code>. The <code>::&lt;u32&gt;</code> ("turbofish") tells it which
+  number type to produce. The <code>match</code> handles both variants; returning <code>Err(...)</code> is the
+  Rust form of <code>raise</code>.</p>
+
+  <h3 class="sub" id="s9-2">9.2&nbsp;&nbsp;The ? Operator</h3>
+:::file src/ch09_errors.rs :: fn sum_numbers
+:::out
+Ok(6)
+could not sum: invalid digit found in string
+:::
+  <p><code>expr?</code> means: if <code>expr</code> is <code>Ok(v)</code>, the expression's value is
+  <code>v</code>; if it is <code>Err(e)</code>, return <code>Err(e)</code> from this function now. It is how an
+  error travels up the call stack, the job an uncaught exception does in Python, but every place it can happen
+  is marked with a visible <code>?</code>. It works only inside a function that itself returns a
+  <code>Result</code> (or an <code>Option</code>, where it returns <code>None</code> early). When the error types
+  differ, <code>?</code> converts the error with the <code>From</code> trait if a conversion exists.</p>
+
+  <h3 class="sub" id="s9-3">9.3&nbsp;&nbsp;A Custom Error Type</h3>
+  <p>Real code defines its own error enum, one variant per way the operation can fail. A caller can then
+  <code>match</code> on the variant, which is Python's <code>except</code> with several exception classes.</p>
+:::file src/ch09_errors.rs :: pub enum ConfigError :: impl fmt::Display for ConfigError :: impl std::error::Error
+:::file src/ch09_errors.rs :: fn find_setting :: pub fn read_port
+:::out
+port 5432
+config error: setting 'port' is missing
+config error: setting 'port' should be a number, got 'http'
+config error: setting 'port' is out of range: 70000
+:::
+  <ul class="tight">
+    <li><code>impl fmt::Display for ConfigError</code> gives each variant its message, so <code>{e}</code> prints
+    it. Python's equivalent is <code>__str__</code> on an exception class.</li>
+    <li><code>impl std::error::Error for ConfigError {}</code> marks it as an error type; the trait's methods all
+    have defaults, so the block is empty. Chapter 11 explains traits.</li>
+    <li><code>ok_or(...)</code> turns an <code>Option</code> into a <code>Result</code>: <code>None</code>
+    becomes the given error, which <code>?</code> then returns.</li>
+    <li><code>if let Some((k, v)) = ... &amp;&amp; k.trim() == key</code> needs the 2024 edition. In older code
+    you will see two nested <code>if</code>s instead.</li>
+    <li>Libraries named <code>thiserror</code> (for defining error enums) and <code>anyhow</code> (for
+    applications that only report errors) remove most of this boilerplate. Interviewers often mention them.</li>
+  </ul>
+
+  <h3 class="sub" id="s9-4">9.4&nbsp;&nbsp;Panics and Shortcuts</h3>
+:::file src/ch09_errors.rs :: let port = read_port ..> println!("get(1)
+:::out
+port 8080, fallback 3000
+get(1) = Some(20), get(9) = None
+:::
+  <p>A <strong>panic</strong> stops the current thread with a message, and usually the whole program. It is for
+  bugs, situations the code does not expect to handle: indexing past the end of an array, <code>unwrap</code>
+  on an <code>Err</code>, an explicit <code>panic!("...")</code>. <code>Result</code> is for failures you
+  expect: bad input, a missing file, a network error. The rule of thumb is "recoverable: <code>Result</code>;
+  bug: panic".</p>
+  <table class="data">
+    <thead><tr><th style="width:36%">Method on Result or Option</th><th>Does</th></tr></thead>
+    <tbody>
+      <tr><td class="c">unwrap()</td><td>The value, or panic</td></tr>
+      <tr><td class="c">expect("msg")</td><td>The value, or panic with your message. Preferred over <code>unwrap</code>.</td></tr>
+      <tr><td class="c">unwrap_or(default)</td><td>The value, or the default</td></tr>
+      <tr><td class="c">map(f)</td><td>Apply <code>f</code> to the success value, leave an error alone</td></tr>
+      <tr><td class="c">map_err(f)</td><td>Convert the error, leave a success alone</td></tr>
+      <tr><td class="c">ok_or(err)</td><td><code>Option</code> to <code>Result</code></td></tr>
+      <tr><td class="c">ok()</td><td><code>Result</code> to <code>Option</code>, dropping the error</td></tr>
+      <tr><td class="c">is_ok(), is_err(), is_some(), is_none()</td><td>Test without taking apart</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s10"><span class="snum">10</span> Collections</h2>
+  <p>The standard library has the collections you use in Python, under different names. All of them hold one
+  element type, written in angle brackets: <code>Vec&lt;String&gt;</code> is a list of strings. File:
+  <code>src/ch10_collections.rs</code>.</p>
+  <table class="data">
+    <thead><tr><th style="width:28%">Python</th><th style="width:30%">Rust</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="c">list</td><td class="c">Vec&lt;T&gt;</td><td>Growable, ordered. <code>vec![1, 2, 3]</code> builds one.</td></tr>
+      <tr><td class="c">dict</td><td class="c">HashMap&lt;K, V&gt;</td><td>Iteration order is random, run to run.</td></tr>
+      <tr><td class="c">dict, sorted keys</td><td class="c">BTreeMap&lt;K, V&gt;</td><td>Iterates in key order.</td></tr>
+      <tr><td class="c">set</td><td class="c">HashSet&lt;T&gt;</td><td>Also <code>BTreeSet</code>, sorted.</td></tr>
+      <tr><td class="c">collections.deque</td><td class="c">VecDeque&lt;T&gt;</td><td>Fast at both ends.</td></tr>
+      <tr><td class="c">heapq</td><td class="c">BinaryHeap&lt;T&gt;</td><td>A max-heap.</td></tr>
+      <tr><td class="c">tuple</td><td class="c">(A, B)</td><td>Built into the language.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub" id="s10-1">10.1&nbsp;&nbsp;Vec and Slices</h3>
+:::file src/ch10_collections.rs :: let mut languages ..> println!("middle
+:::out
+["Go", "Python", "Rust", "SQL"] has 4 items
+first Some("Go"), tenth None
+contains Rust? true
+middle ["Python", "Rust"]
+:::
+  <p><code>first()</code> and <code>get(9)</code> return an <code>Option</code>, so an empty list or a bad index
+  is a <code>None</code> to handle, not an <code>IndexError</code>. <code>&amp;languages[1..3]</code> is a
+  <strong>slice</strong>: a borrowed view of part of the vector, with no copy. A function that only reads a
+  list should take <code>&amp;[T]</code>, which accepts a <code>Vec</code>, an array or a slice.</p>
+
+  <h3 class="sub" id="s10-2">10.2&nbsp;&nbsp;HashMap and BTreeMap</h3>
+:::file src/ch10_collections.rs :: let mut stock: HashMap ..> println!("{counts:?}
+:::out
+apples: 5
+no plums
+{"and": 1, "cat": 1, "dog": 1, "mat": 1, "on": 1, "sat": 2, "the": 3, "too": 1}
+:::
+  <ul class="tight">
+    <li><code>stock["apple"]</code> panics if the key is missing, like a <code>KeyError</code>.
+    <code>stock.get("plum")</code> returns an <code>Option</code>, like <code>dict.get</code>.</li>
+    <li><code>entry(key).or_insert(0)</code> returns a mutable reference to the value, inserting 0 first if the
+    key is new. <code>*... += 1</code> adds to the value through the reference (<code>*</code> follows the
+    reference). It is the word-count idiom; Python writes <code>counts[w] = counts.get(w, 0) + 1</code> or
+    uses <code>Counter</code>.</li>
+    <li>Python's <code>dict</code> remembers insertion order. <code>HashMap</code> does not, and its order
+    changes from run to run. Use <code>BTreeMap</code>, or sort, whenever order is visible.</li>
+  </ul>
+
+  <h3 class="sub" id="s10-3">10.3&nbsp;&nbsp;HashSet and Iterating</h3>
+:::file src/ch10_collections.rs :: let rust_devs ..> println!();
+:::out
+know both: ["Grace", "Linus"]
+Guido knows Rust? false
+110 260 85
+:::
+  <p>The three ways to loop over a collection are chapter 6 again:</p>
+  <table class="data">
+    <thead><tr><th style="width:30%">Loop</th><th>Each item is</th><th style="width:34%">The collection afterwards</th></tr></thead>
+    <tbody>
+      <tr><td class="c">for x in &amp;v</td><td>A shared reference, <code>&amp;T</code></td><td>Unchanged and usable</td></tr>
+      <tr><td class="c">for x in &amp;mut v</td><td>A mutable reference, <code>&amp;mut T</code></td><td>Possibly changed, usable</td></tr>
+      <tr><td class="c">for x in v</td><td>The value itself, <code>T</code> (moved out)</td><td>Gone: consumed by the loop</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s11"><span class="snum">11</span> Traits and Generics</h2>
+  <p>A <strong>trait</strong> is a named set of methods that a type promises to provide. It is Rust's answer to
+  interfaces, abstract base classes and Python's <code>Protocol</code>. Rust has no inheritance between structs:
+  shared behaviour comes from traits, and shared data from putting one struct inside another (composition).
+  File: <code>src/ch11_traits.rs</code>.</p>
+
+  <h3 class="sub" id="s11-1">11.1&nbsp;&nbsp;Defining and Implementing a Trait</h3>
+:::file src/ch11_traits.rs :: pub trait Describe :: pub struct Dog ..> impl Describe for Robot
+  <ul class="tight">
+    <li><code>fn name(&amp;self) -&gt; String;</code> ends in a semicolon: it has no body, so every implementing
+    type must write one. Python: an <code>@abstractmethod</code>.</li>
+    <li><code>describe</code> has a body, a <strong>default method</strong>. <code>Dog</code> replaces it;
+    <code>Robot</code> keeps it.</li>
+    <li><code>impl Describe for Dog</code> is written separately from the struct. You can implement your own
+    trait for someone else's type, or someone else's trait for your type, but not someone else's trait for
+    someone else's type (the <strong>orphan rule</strong>).</li>
+    <li>Python's <code>Protocol</code> is matched by shape: any class with a <code>name</code> method fits.
+    A Rust type fits a trait only with an explicit <code>impl</code>.</li>
+  </ul>
+
+  <h3 class="sub" id="s11-2">11.2&nbsp;&nbsp;Generics: Static Dispatch</h3>
+:::file src/ch11_traits.rs :: pub fn announce :: pub fn largest
+  <p><code>&lt;T: Describe&gt;</code> declares a <strong>type parameter</strong> <code>T</code> with a
+  <strong>trait bound</strong>: <code>T</code> may be any type that implements <code>Describe</code>. The
+  compiler checks the bound where the function is called, and generates a separate copy of
+  <code>announce</code> for each type it is used with (<strong>monomorphisation</strong>). The call is then as
+  fast as a direct call. <code>largest</code> has two bounds joined by <code>+</code>: <code>PartialOrd</code>
+  allows <code>&gt;</code>, <code>Copy</code> allows <code>let mut best = items[0]</code> without moving out of
+  the slice.</p>
+:::file src/ch11_traits.rs :: let rex = Dog ..> println!("{}", announce(&r2)); :: let biggest_int ..> println!("largest
+:::out
+Announcing: Rex says woof
+Announcing: This is Robot #2
+largest: 9 1.5 x
+:::
+  <p>Python's <code>TypeVar("T", bound=...)</code> expresses the same idea for a type checker; Rust's compiler
+  enforces it. The short form <code>fn announce(item: &amp;impl Describe)</code> means the same as the generic
+  version.</p>
+
+  <h3 class="sub" id="s11-3">11.3&nbsp;&nbsp;Trait Objects: Dynamic Dispatch</h3>
+:::file src/ch11_traits.rs :: // A trait object ..> for thing in &things
+:::out
+Fido says woof
+This is Robot #7
+:::
+  <p>A <code>Vec</code> holds one type. To hold a <code>Dog</code> and a <code>Robot</code> together, store each
+  as a <code>Box&lt;dyn Describe&gt;</code>: a pointer to a value on the heap whose concrete type is known only
+  at run time, plus a table of its methods (a <strong>vtable</strong>). Calling <code>describe</code> looks up
+  the method in the table. This is how every Python method call works, and how C# and Java virtual methods
+  work.</p>
+  <table class="data">
+    <thead><tr><th style="width:22%"></th><th>Generic <code>&lt;T: Trait&gt;</code></th><th>Trait object <code>dyn Trait</code></th></tr></thead>
+    <tbody>
+      <tr><td>Method chosen</td><td>At compile time</td><td>At run time, through a vtable</td></tr>
+      <tr><td>Speed</td><td>Fastest; can be inlined</td><td>One extra pointer lookup per call</td></tr>
+      <tr><td>Code size</td><td>One copy per type used</td><td>One copy</td></tr>
+      <tr><td>Mixed types in one collection</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Typical use</td><td>Most library code; <code>OrderService&lt;D&gt;</code> in chapter 15</td><td>Plugin lists, <code>Box&lt;dyn Error&gt;</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub" id="s11-4">11.4&nbsp;&nbsp;Standard Traits: Display and Operators</h3>
+  <p>Implementing standard-library traits gives your type built-in behaviour, the way Python's dunder methods
+  do.</p>
+:::file src/ch11_traits.rs :: impl fmt::Display for Fraction :: impl Add for Fraction
+:::file src/ch11_traits.rs :: let half = ..> println!("2/4
+:::out
+1/2 + 1/3 = 5/6
+debug: Fraction { num: 1, den: 1 }
+2/4 == 1/2? true
+:::
+  <table class="data">
+    <thead><tr><th style="width:30%">Trait</th><th>Enables</th><th style="width:28%">Python</th></tr></thead>
+    <tbody>
+      <tr><td class="c">Display</td><td><code>{}</code> formatting and <code>.to_string()</code></td><td class="c">__str__</td></tr>
+      <tr><td class="c">Debug</td><td><code>{:?}</code> formatting</td><td class="c">__repr__</td></tr>
+      <tr><td class="c">Add, Sub, Mul, ...</td><td><code>+</code>, <code>-</code>, <code>*</code>, ...</td><td class="c">__add__, ...</td></tr>
+      <tr><td class="c">PartialEq, PartialOrd</td><td><code>==</code>, <code>&lt;</code>, ...</td><td class="c">__eq__, __lt__</td></tr>
+      <tr><td class="c">Iterator</td><td><code>for</code> loops and iterator methods</td><td class="c">__iter__, __next__</td></tr>
+      <tr><td class="c">Drop</td><td>Code that runs when a value is freed</td><td class="c">__exit__, __del__</td></tr>
+      <tr><td class="c">From / Into</td><td>Conversions; used by <code>?</code></td><td>a constructor classmethod</td></tr>
+      <tr><td class="c">Default</td><td><code>Type::default()</code></td><td>default arguments</td></tr>
+    </tbody>
+  </table>
+  <p><code>type Output = Fraction;</code> inside <code>impl Add</code> is an <strong>associated type</strong>:
+  the trait lets each implementation choose the type that <code>+</code> returns.</p>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s12"><span class="snum">12</span> Iterators and Closures</h2>
+  <p>Where Python uses comprehensions and generator expressions, Rust chains iterator methods, each taking a
+  small anonymous function called a <strong>closure</strong>. File: <code>src/ch12_iterators.rs</code>.</p>
+
+  <h3 class="sub" id="s12-1">12.1&nbsp;&nbsp;Closures</h3>
+:::file src/ch12_iterators.rs :: let bonus ..> println!("with bonus
+:::out
+with bonus: 1500
+:::
+  <p><code>|salary: u32| salary + bonus</code> is Python's <code>lambda salary: salary + bonus</code>. Parameters
+  go between the bars; types are usually inferred. A closure body can be a whole block in braces, unlike a
+  Python lambda. It can use (<strong>capture</strong>) variables from where it is written, here
+  <code>bonus</code>. Writing <code>move</code> before the bars makes the closure take ownership of what it
+  captures, which chapter 14 needs for threads.</p>
+
+  <h3 class="sub" id="s12-2">12.2&nbsp;&nbsp;Filter, Map, Collect</h3>
+  <p>The data is a list of <code>Employee</code> structs:</p>
+:::file src/ch12_iterators.rs :: pub struct Employee :: pub fn staff
+:::file src/ch12_iterators.rs :: // Python: [e.name ..> println!("High earners
+:::out
+High earners: Ada, Grace, Barbara
+:::
+  <ol class="tight">
+    <li><code>staff.iter()</code> makes an iterator that yields a reference, <code>&amp;Employee</code>, to each
+    item.</li>
+    <li><code>.filter(|e| ...)</code> keeps items for which the closure returns <code>true</code>.</li>
+    <li><code>.map(|e| ...)</code> turns each item into something else.</li>
+    <li><code>.collect()</code> runs the chain and gathers the results into a collection. Which collection
+    depends on the type you ask for: here <code>Vec&lt;&amp;str&gt;</code>. It could equally be a
+    <code>HashSet</code> or, from pairs, a <code>HashMap</code>.</li>
+  </ol>
+
+  <h3 class="sub" id="s12-3">12.3&nbsp;&nbsp;Aggregates and Sorting</h3>
+:::file src/ch12_iterators.rs :: // Aggregates ..> println!("Top salary
+:::out
+Payroll 636000, avg years 4.5, new hires? true
+HR: None
+Most senior: Grace
+Top salary: Grace (135000)
+:::
+  <table class="data">
+    <thead><tr><th style="width:46%">Python</th><th>Rust</th></tr></thead>
+    <tbody>
+      <tr><td class="c">[f(x) for x in xs]</td><td class="c">xs.iter().map(f).collect()</td></tr>
+      <tr><td class="c">[x for x in xs if p(x)]</td><td class="c">xs.iter().filter(p).collect()</td></tr>
+      <tr><td class="c">sum(x.n for x in xs)</td><td class="c">xs.iter().map(|x| x.n).sum()</td></tr>
+      <tr><td class="c">any(p(x) for x in xs)</td><td class="c">xs.iter().any(p)</td></tr>
+      <tr><td class="c">all(p(x) for x in xs)</td><td class="c">xs.iter().all(p)</td></tr>
+      <tr><td class="c">next((x for x in xs if p(x)), None)</td><td class="c">xs.iter().find(p)</td></tr>
+      <tr><td class="c">max(xs, key=k)</td><td class="c">xs.iter().max_by_key(k)</td></tr>
+      <tr><td class="c">len([x for x in xs if p(x)])</td><td class="c">xs.iter().filter(p).count()</td></tr>
+      <tr><td class="c">xs.sort(key=k)</td><td class="c">xs.sort_by_key(k)</td></tr>
+      <tr><td class="c">zip(a, b), enumerate(xs)</td><td class="c">a.iter().zip(b.iter()), xs.iter().enumerate()</td></tr>
+      <tr><td class="c">reversed(xs)</td><td class="c">xs.iter().rev()</td></tr>
+      <tr><td class="c">itertools.islice(xs, 4)</td><td class="c">xs.take(4)</td></tr>
+    </tbody>
+  </table>
+  <p><code>sort_by</code> takes a closure that compares two items and returns an <code>Ordering</code>.
+  <code>b.years.cmp(&amp;a.years)</code> compares in reverse, for most years first, and
+  <code>.then(...)</code> breaks ties by name. Rust's sort is stable, like Python's.
+  <code>staff.clone()</code> copies the list so the sort does not reorder <code>staff</code>.</p>
+
+  <h3 class="sub" id="s12-4">12.4&nbsp;&nbsp;Laziness</h3>
+:::file src/ch12_iterators.rs :: // Iterators are lazy ..> println!("first four
+:::out
+first four odd squares: [1, 9, 25, 49]
+:::
+  <p><code>(1..)</code> is an endless range, and <code>map</code> and <code>filter</code> do no work when called;
+  they build a description of the work. Only <code>take(4).collect()</code> pulls values through, and it stops
+  after four. Python generators behave the same way. Rust iterator chains compile down to the same machine code
+  as a hand-written loop, an example of what Rust calls <strong>zero-cost abstractions</strong>.</p>
+
+  <h3 class="sub" id="s12-5">12.5&nbsp;&nbsp;iter, iter_mut, into_iter</h3>
+  <table class="data">
+    <thead><tr><th style="width:24%">Method</th><th>Yields</th><th style="width:36%">Same as the loop</th></tr></thead>
+    <tbody>
+      <tr><td class="c">v.iter()</td><td><code>&amp;T</code>, shared references</td><td class="c">for x in &amp;v</td></tr>
+      <tr><td class="c">v.iter_mut()</td><td><code>&amp;mut T</code>, mutable references</td><td class="c">for x in &amp;mut v</td></tr>
+      <tr><td class="c">v.into_iter()</td><td><code>T</code>, owned values; <code>v</code> is consumed</td><td class="c">for x in v</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 13 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s13"><span class="snum">13</span> Lifetimes and Smart Pointers</h2>
+  <p>This chapter finishes the ownership story: how the compiler tracks how long a reference is valid, what
+  happens when a value is dropped, and the types to reach for when one owner is not enough. File:
+  <code>src/ch13_lifetimes.rs</code>.</p>
+
+  <h3 class="sub" id="s13-1">13.1&nbsp;&nbsp;Lifetimes</h3>
+  <p>A <strong>lifetime</strong> is the span of code during which a reference is valid. The compiler checks that
+  no reference outlives the value it points to (the second half of section 6.4's rule). Usually it works the
+  lifetimes out alone. When a function returns a reference and takes more than one, it cannot tell which input
+  the result borrows from, and you must say:</p>
+:::file src/ch13_lifetimes.rs :: fn longest :: pub struct Headline :: impl<'a> Headline
+  <ul class="tight">
+    <li><code>'a</code> (said "tick a" or "lifetime a") is a lifetime parameter, declared in angle brackets like a
+    type parameter. <code>longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str</code> says: the
+    result is valid as long as both inputs are.</li>
+    <li>Lifetime annotations do not change how long anything lives. They describe relationships so the compiler
+    can check the callers.</li>
+    <li>A struct that holds a reference needs a lifetime parameter too: a <code>Headline</code> may not outlive
+    the text it points into. Most structs avoid this by owning their data (<code>String</code>, not
+    <code>&amp;str</code>).</li>
+    <li><code>'static</code> is the lifetime of the whole program. String literals are
+    <code>&amp;'static str</code>.</li>
+  </ul>
+:::file src/ch13_lifetimes.rs :: let a = String::from ..> println!("first word
+:::out
+longest: a much longer line
+first word: Rust
+:::
+  <p>Moving the <code>println!("longest: ...")</code> line below the inner block's closing brace is a compile
+  error: <code>b</code> is dropped at that brace, and <code>result</code> might point into it.</p>
+
+  <h3 class="sub" id="s13-2">13.2&nbsp;&nbsp;Drop: Cleanup at Scope End</h3>
+:::file src/ch13_lifetimes.rs :: pub struct Resource :: impl Drop for Resource
+:::file src/ch13_lifetimes.rs :: println!("before the block") ..> println!("after the block")
+:::out
+before the block
+  using both
+  closing database
+  closing data.csv
+after the block
+:::
+  <p>The <code>drop</code> method of the <code>Drop</code> trait runs automatically when a value's owner goes out
+  of scope, in reverse order of creation. Rust's <code>File</code>, <code>MutexGuard</code> and network
+  connections use it to close or release themselves, so Rust needs no <code>with</code> statement and no
+  <code>finally</code>. The pattern is called <strong>RAII</strong> ("resource acquisition is initialisation"),
+  a name taken from C++.</p>
+
+  <h3 class="sub" id="s13-3">13.3&nbsp;&nbsp;Box: Values on the Heap</h3>
+:::file src/ch13_lifetimes.rs :: pub enum Expr :: pub fn eval
+:::file src/ch13_lifetimes.rs :: let expr = Expr::Mul ..> println!("(2 + 3)
+:::out
+(2 + 3) * 4 = 20
+:::
+  <p>Every Rust type must have a size known at compile time. An <code>Expr</code> that contained an
+  <code>Expr</code> directly would be infinitely large. <code>Box&lt;Expr&gt;</code> is a pointer to an
+  <code>Expr</code> on the heap, so its size is fixed. <code>Box</code> has one owner and frees its contents when
+  dropped. It is also how you store a trait object (<code>Box&lt;dyn Describe&gt;</code>, section 11.3).</p>
+
+  <h3 class="sub" id="s13-4">13.4&nbsp;&nbsp;Rc and RefCell: Shared Ownership</h3>
+:::file src/ch13_lifetimes.rs :: // Rc<T>: ..> Rc::strong_count
+:::out
+shared = [1, 2, 3], owners = 2
+:::
+  <p>Sometimes one owner is not enough: a graph node with several parents, or a cache shared by several parts of
+  a program. <code>Rc&lt;T&gt;</code> (reference counted) allows several owners. <code>Rc::clone</code> copies
+  the pointer, not the data, and adds one to a counter; the value is freed when the counter reaches zero. This
+  is exactly how CPython manages memory.</p>
+  <p><code>Rc</code> gives only shared (read-only) access. <code>RefCell&lt;T&gt;</code> allows changing the value
+  through a shared reference by moving the borrow check from compile time to run time: <code>borrow_mut()</code>
+  panics if the value is already borrowed. This is called <strong>interior mutability</strong>.</p>
+  <table class="data">
+    <thead><tr><th style="width:24%">Type</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td class="c">Box&lt;T&gt;</td><td>One owner, value on the heap: recursive types, trait objects</td></tr>
+      <tr><td class="c">Rc&lt;T&gt;</td><td>Several owners, one thread</td></tr>
+      <tr><td class="c">Arc&lt;T&gt;</td><td>Several owners across threads (atomic counter; chapter 14)</td></tr>
+      <tr><td class="c">RefCell&lt;T&gt;</td><td>Change through a shared reference, one thread; checked at run time</td></tr>
+      <tr><td class="c">Mutex&lt;T&gt;</td><td>Change through a shared reference across threads; one at a time</td></tr>
+    </tbody>
+  </table>
+  <p>Common pairings are <code>Rc&lt;RefCell&lt;T&gt;&gt;</code> in single-threaded code and
+  <code>Arc&lt;Mutex&lt;T&gt;&gt;</code> in multi-threaded code. Two <code>Rc</code>s that point at each other
+  are never freed (a leak); <code>Weak</code> pointers break such cycles.</p>
+</section>
+
+<!-- ===================== 14 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s14"><span class="snum">14</span> Concurrency and Async</h2>
+  <p>Rust's ownership rules also prevent <strong>data races</strong>: two threads touching the same data at once
+  with at least one writing. A program with a possible data race does not compile. Rust calls this
+  "fearless concurrency". File: <code>src/ch14_concurrency.rs</code>.</p>
+
+  <h3 class="sub" id="s14-1">14.1&nbsp;&nbsp;Threads</h3>
+:::file src/ch14_concurrency.rs :: // 1. Threads ..> println!("sum of
+:::out
+sum of 1..=1000 over 4 threads: 500500
+:::
+  <ul class="tight">
+    <li><code>thread::spawn</code> starts an operating-system thread running the closure and returns a
+    <code>JoinHandle</code>. <code>join()</code> waits for it and returns the closure's result. Python:
+    <code>threading.Thread</code>, or <code>concurrent.futures</code>.</li>
+    <li>There is no GIL. The four threads run on four cores at once, which is why CPU-heavy Python work moves to
+    Rust.</li>
+    <li><code>move</code> makes the closure take ownership of <code>chunk</code>. Without it the closure would
+    borrow a local variable that might be gone before the thread finishes, and the compiler refuses.</li>
+  </ul>
+
+  <h3 class="sub" id="s14-2">14.2&nbsp;&nbsp;Shared State: Arc and Mutex</h3>
+:::file src/ch14_concurrency.rs :: let counter = Arc::new ..> "counter after
+:::out
+counter after 8 threads x 1000: 8000
+:::
+  <ul class="tight">
+    <li><code>Mutex&lt;i32&gt;</code> wraps the data it protects. The only way to reach the number is
+    <code>lock()</code>, so you cannot forget to lock. Python's <code>threading.Lock</code> is separate from the
+    data, and nothing stops code touching the data without it.</li>
+    <li><code>lock()</code> returns a guard. The lock is released when the guard is dropped, here at the end of
+    the statement (section 13.2).</li>
+    <li><code>lock()</code> returns a <code>Result</code> because a thread that panicked while holding the lock
+    leaves it "poisoned". <code>unwrap()</code> passes that panic on.</li>
+    <li><code>Arc</code> is the thread-safe <code>Rc</code>. Each thread gets its own <code>Arc</code> pointing at
+    the same <code>Mutex</code>.</li>
+  </ul>
+  <p>The compiler enforces this with two marker traits. <code>Send</code>: the type may be moved to another
+  thread. <code>Sync</code>: the type may be shared between threads by reference. <code>Rc</code> is neither,
+  so trying to pass an <code>Rc</code> to <code>thread::spawn</code> is a compile error; <code>Arc</code> is
+  both.</p>
+
+  <h3 class="sub" id="s14-3">14.3&nbsp;&nbsp;Channels</h3>
+:::file src/ch14_concurrency.rs :: let (sender, receiver) ..> println!("received
+:::out
+received [10, 20, 30]
+:::
+  <p>A channel sends values from threads to a receiver, like Python's <code>queue.Queue</code>.
+  <code>mpsc</code> stands for "multiple producer, single consumer". Sending moves the value, so the sender can
+  no longer touch it: no sharing, so no lock is needed. The receiver's loop ends when every sender has been
+  dropped. The results are sorted because the threads may finish in any order.</p>
+
+  <h3 class="sub" id="s14-4">14.4&nbsp;&nbsp;Async and Await</h3>
+:::file src/ch14_concurrency.rs :: let runtime = tokio ..> runtime.block_on :: async fn fetch :: async fn fetch_both
+:::out
+got prices (200 ms) and news (100 ms)
+waited under 300 ms, not 200 + 100: true
+:::
+  <p>The syntax matches Python's: <code>async fn</code> and <code>.await</code> (written after the expression).
+  The differences matter in an interview:</p>
+  <ul class="tight">
+    <li><strong>No built-in runtime.</strong> Python ships <code>asyncio</code>. Rust's standard library defines
+    futures but no event loop to run them; you choose a crate. <strong>Tokio</strong> is the de facto standard,
+    and the web API in chapter 16 runs on it. <code>runtime.block_on(...)</code> is
+    <code>asyncio.run(...)</code>; in a program whose <code>main</code> is async, the
+    <code>#[tokio::main]</code> attribute does the same.</li>
+    <li><strong>Futures are lazy.</strong> Calling <code>fetch(...)</code> does nothing until the result is
+    awaited or passed to something like <code>join!</code>. A Python coroutine is also lazy, but
+    <code>asyncio.create_task</code> schedules it to run straight away.</li>
+    <li><code>tokio::join!</code> runs both futures concurrently and waits for both: <code>asyncio.gather</code>.
+    <code>tokio::spawn</code> starts an independent task: <code>asyncio.create_task</code>.</li>
+    <li>Tokio's default runtime spreads tasks across several threads, so the data a task uses must be
+    <code>Send</code>. Python's event loop is single-threaded.</li>
+    <li>Use async for many waits at once (network servers, many HTTP calls); use threads for CPU-heavy work.
+    This is the same rule as in Python.</li>
+  </ul>
+</section>
+
+<!-- ===================== 15 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s15"><span class="snum">15</span> Walkthrough: The Order System</h2>
+  <p>The order system in <code>src/orders/</code> turns an order into a receipt. It checks stock, removes the
+  items from stock, applies a discount and adds tax. It is a small, realistic program that uses structs, an enum
+  for errors, a trait, a generic type, a <code>HashMap</code> and iterators together. This is the code to
+  practise changing.</p>
+
+  <h3 class="sub" id="s15-1">15.1&nbsp;&nbsp;Module Layout</h3>
+:::file src/orders/mod.rs :: pub mod discounts ..> pub use service
+  <p><code>src/orders/mod.rs</code> is the module's root file, as <code>__init__.py</code> is for a Python
+  package. The <code>pub use</code> lines <strong>re-export</strong> the main types, so callers write
+  <code>tutorial::orders::Order</code> rather than <code>tutorial::orders::models::Order</code>. Inside the
+  module, <code>super::</code> means the parent module and <code>crate::</code> the root of this library.</p>
+
+  <h3 class="sub" id="s15-2">15.2&nbsp;&nbsp;The Data Types</h3>
+:::file src/orders/models.rs :: pub struct Product :: impl Product :: pub struct OrderLine :: impl OrderLine
+:::file src/orders/models.rs :: pub struct Order { :: impl Order { :: pub struct Receipt
+  <ul class="tight">
+    <li>Amounts are <code>i64</code> cents, and <code>money::dollars</code> formats them for display. Floats
+    cannot hold 0.10 exactly, so money code avoids them; in Python you would use <code>Decimal</code>.</li>
+    <li><code>quantity: u32</code> is unsigned, so a negative quantity cannot be represented at all.
+    <code>Order::add</code> still has to reject zero.</li>
+    <li>An <code>OrderLine</code> owns a copy of its <code>Product</code>. Callers pass
+    <code>mouse.clone()</code>, keeping their own. Python would share one object between both places.</li>
+    <li><code>self.lines.iter().map(|line| line.subtotal()).sum()</code> is Python's
+    <code>sum(line.subtotal() for line in self.lines)</code>.</li>
+    <li><code>Serialize</code> comes from <strong>serde</strong>, the standard serialisation crate. Deriving it
+    lets the web API send <code>Product</code> and <code>Receipt</code> as JSON (Python: Pydantic's
+    <code>model_dump_json</code>).</li>
+  </ul>
+
+  <h3 class="sub" id="s15-3">15.3&nbsp;&nbsp;Errors as an Enum</h3>
+:::file src/orders/models.rs :: pub enum OrderError :: impl fmt::Display for OrderError
+  <p>Each way an order can fail is a variant carrying the details. A caller that needs to react differently
+  to "out of stock" and "empty order" matches on the variant, and a test can check exactly which failure
+  happened. The Python version would be an exception class hierarchy.</p>
+
+  <h3 class="sub" id="s15-4">15.4&nbsp;&nbsp;Discount Rules</h3>
+  <p><code>DiscountPolicy</code> is a trait with one method. Each discount rule is a struct that implements it.
+  <code>OrderService</code> depends only on the trait, so a new rule needs a new struct and no change to
+  <code>OrderService</code>.</p>
+:::file src/orders/discounts.rs :: pub trait DiscountPolicy :: pub struct NoDiscount ..> impl DiscountPolicy for BulkDiscount
+  <ul class="tight">
+    <li><code>pub struct NoDiscount;</code> is a <strong>unit struct</strong>: no fields, so it takes no memory.
+    It exists only to carry a trait implementation.</li>
+    <li><code>impl Default for BulkDiscount</code> is how Rust offers default values. Rust has no default
+    arguments and no function overloading, so <code>BulkDiscount::default()</code> and
+    <code>BulkDiscount::new(100_00, 10)</code> are two separate functions.</li>
+    <li><code>_order</code>: a leading underscore marks a parameter as deliberately unused, which silences the
+    compiler's warning.</li>
+  </ul>
+
+  <h3 class="sub" id="s15-5">15.5&nbsp;&nbsp;Checkout</h3>
+  <p><code>checkout</code> returns either <code>Ok(Receipt)</code> or <code>Err(OrderError)</code>. It checks every
+  line before it removes any stock, so a failed order leaves the stock unchanged.</p>
+
+  <svg class="diagram" viewBox="0 0 620 330" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="'Nimbus Sans','Liberation Sans',sans-serif">
+    <defs>
+      <marker id="a5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f3756"/></marker>
+      <marker id="a5r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b03a3a"/></marker>
+    </defs>
+    <rect x="12" y="8" width="180" height="40" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="102" y="33" text-anchor="middle" font-size="12.5" font-weight="700" font-family="'Liberation Mono',monospace" fill="#16273d">checkout(&amp;order)</text>
+    <line x1="102" y1="48" x2="102" y2="70" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a5)"/>
+    <rect x="12" y="72" width="180" height="40" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="102" y="97" text-anchor="middle" font-size="12.5" font-weight="700" fill="#16273d">Any lines?</text>
+    <line x1="102" y1="112" x2="102" y2="134" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a5)"/>
+    <text x="110" y="128" font-size="10.5" fill="#2f6b3f">yes</text>
+    <rect x="12" y="136" width="180" height="40" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="102" y="161" text-anchor="middle" font-size="12.5" font-weight="700" fill="#16273d">Every line in stock?</text>
+    <line x1="102" y1="176" x2="102" y2="198" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a5)"/>
+    <text x="110" y="192" font-size="10.5" fill="#2f6b3f">yes</text>
+    <rect x="12" y="200" width="180" height="40" rx="7" fill="#eef3f9" stroke="#1f3756" stroke-width="1.5"/>
+    <text x="102" y="225" text-anchor="middle" font-size="12.5" font-weight="700" fill="#16273d">Remove from stock</text>
+    <line x1="102" y1="240" x2="102" y2="262" stroke="#1f3756" stroke-width="1.5" marker-end="url(#a5)"/>
+    <rect x="12" y="264" width="180" height="56" rx="7" fill="#eef7f0" stroke="#2f6b3f" stroke-width="1.5"/>
+    <text x="102" y="285" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2f6b3f">Ok(Receipt)</text>
+    <text x="102" y="302" text-anchor="middle" font-size="10.5" fill="#5b6470">subtotal &#8722; discount + tax</text>
+    <text x="210" y="97" font-size="12" fill="#1c1c1c">order.lines.is_empty()</text>
+    <text x="210" y="157" font-size="12" fill="#1c1c1c">first loop: stock_of(sku) &lt; quantity</text>
+    <text x="210" y="172" font-size="12" fill="#1c1c1c">for any line</text>
+    <text x="210" y="225" font-size="12" fill="#1c1c1c">second loop: inventory.remove(...)</text>
+    <text x="210" y="285" font-size="12" fill="#1c1c1c">discount from the DiscountPolicy;</text>
+    <text x="210" y="300" font-size="12" fill="#1c1c1c">tax = 8% of (subtotal &#8722; discount)</text>
+    <rect x="440" y="104" width="168" height="48" rx="7" fill="#fcf0f0" stroke="#b03a3a" stroke-width="1.5"/>
+    <text x="524" y="125" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b03a3a">return Err(...)</text>
+    <text x="524" y="142" text-anchor="middle" font-size="12" font-weight="700" font-family="'Liberation Mono',monospace" fill="#b03a3a">OrderError</text>
+    <path d="M192,82 L420,82 L420,116 L436,116" fill="none" stroke="#b03a3a" stroke-width="1.5" marker-end="url(#a5r)"/>
+    <path d="M192,142 L420,142 L420,136 L436,136" fill="none" stroke="#b03a3a" stroke-width="1.5" marker-end="url(#a5r)"/>
+    <text x="398" y="137" text-anchor="end" font-size="10.5" fill="#b03a3a">OutOfStock</text>
+    <text x="398" y="77" text-anchor="end" font-size="10.5" fill="#b03a3a">Empty</text>
+  </svg>
+  <p class="caption">Figure 4. <code>OrderService::checkout</code>. Either check can return an error; only a fully valid order changes stock.</p>
+
+:::file src/orders/service.rs :: pub const TAX_RATE_PERCENT :: pub struct Inventory :: impl Inventory
+:::file src/orders/service.rs :: pub struct OrderService :: impl<D: DiscountPolicy> OrderService<D>
+  <ul class="tight">
+    <li><code>copied().unwrap_or(0)</code>: <code>get</code> returns <code>Option&lt;&amp;u32&gt;</code>, a
+    reference into the map; <code>copied</code> turns it into <code>Option&lt;u32&gt;</code>, and a missing SKU
+    counts as 0.</li>
+    <li><code>remove</code> has no <code>pub</code>, so only code in this module can take stock away. The
+    service's <code>checkout</code> is the only path.</li>
+    <li><code>checkout</code> takes <code>&amp;mut self</code> because it changes the inventory, and
+    <code>&amp;Order</code> because it only reads the order.</li>
+    <li><code>#[derive(Default)]</code> on <code>Inventory</code> sits beside a hand-written <code>new</code>
+    because Clippy warns when a type has a public <code>new()</code> with no arguments but no
+    <code>Default</code>.</li>
+  </ul>
+
+  <h3 class="sub" id="s15-6">15.6&nbsp;&nbsp;Dependency Injection and Ownership</h3>
+  <p><strong>Dependency injection</strong> (DI) means a type receives the objects it works with instead of
+  creating them. <code>OrderService::new</code> receives an <code>Inventory</code> and a discount rule; it never
+  writes <code>BulkDiscount::default()</code> itself. The caller decides which rule applies, and a test can pass
+  <code>NoDiscount</code>.</p>
+  <p><code>OrderService&lt;D: DiscountPolicy&gt;</code> takes the rule as a <strong>generic</strong>, so each
+  service is built for one concrete rule and calls it directly (section 11.2). Storing a
+  <code>Box&lt;dyn DiscountPolicy&gt;</code> instead would allow changing the rule at run time, at the cost of
+  dynamic dispatch. Both are common; generics are the default choice in Rust.</p>
+  <p>Ownership changes the design compared with Python or C#. There, the caller and the service could both
+  hold the same inventory object. Here, <code>new</code> <em>moves</em> the inventory into the service, and the
+  service is its only owner. Other code reaches it by borrowing through <code>inventory()</code> (read) or
+  <code>inventory_mut()</code> (change). Who can change what is visible in the method signatures.</p>
+
+  <h3 class="sub" id="s15-7">15.7&nbsp;&nbsp;Running It</h3>
+:::file src/ch15_orders.rs :: let keyboard ..> println!("Mice left
+  <p>Run it with <code>cargo run -- 15</code>:</p>
+:::out
+ORD-1: subtotal 50.00 - discount 0.00 + tax 4.00 = 54.00
+ORD-2: subtotal 225.00 - discount 22.50 + tax 16.20 = 218.70
+Rejected: ORD-3: only 0 of Monitor in stock, 1 requested
+Mice left: 8
+:::
+  <p>ORD-1 is below the 100.00 threshold, so it gets no discount. ORD-2 is 225.00, so it gets 10% off (22.50),
+  and tax is 8% of the remaining 202.50. ORD-3 fails because ORD-2 bought the only monitor.</p>
+
+  <h3 class="sub" id="s15-8">15.8&nbsp;&nbsp;The Tests</h3>
+  <p>Rust's test framework is built in: no package to install. A test is any function marked
+  <code>#[test]</code>; it passes if it returns without panicking. There are two places to put tests:</p>
+  <ul class="tight">
+    <li><strong>Unit tests</strong> sit in the same file as the code, inside a <code>#[cfg(test)] mod tests</code>
+    block that is compiled only by <code>cargo test</code>. They can call private functions.
+    <code>src/money.rs</code> and <code>src/orders/discounts.rs</code> have them.</li>
+    <li><strong>Integration tests</strong> sit in <code>tests/</code>. Each file is compiled as a separate
+    program that can use only the library's public items, the way outside code would.</li>
+  </ul>
+:::file tests/order_service.rs :: fn build< :: fn checkout_not_enough_stock
+  <p>Each test follows <strong>Arrange, Act, Assert</strong>: set up objects, call the method under test, check
+  the result. <code>matches!(value, pattern)</code> is <code>true</code> if the value fits the pattern; here it
+  checks the error variant and one field, ignoring the rest with <code>..</code>.</p>
+:::out cargo test (abridged)
+     Running unittests src/lib.rs
+running 4 tests
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+     Running tests/bank_account.rs
+running 4 tests
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+     Running tests/order_service.rs
+running 4 tests
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+:::
+  <table class="data">
+    <thead><tr><th>pytest</th><th>Rust</th></tr></thead>
+    <tbody>
+      <tr><td class="c">def test_x():</td><td class="c">#[test] fn x() {</td></tr>
+      <tr><td class="c">assert actual == expected</td><td class="c">assert_eq!(actual, expected);</td></tr>
+      <tr><td class="c">assert cond</td><td class="c">assert!(cond);</td></tr>
+      <tr><td class="c">with pytest.raises(E):</td><td class="c">assert!(result.is_err()); or #[should_panic]</td></tr>
+      <tr><td class="c">pytest -k name</td><td class="c">cargo test name</td></tr>
+      <tr><td class="c">@pytest.fixture</td><td>a plain helper function, such as <code>build</code></td></tr>
+      <tr><td class="c">pytest</td><td class="c">cargo test</td></tr>
+    </tbody>
+  </table>
+  <p>Because errors are values, most failure tests check the returned <code>Err</code>, not a panic.
+  <code>#[should_panic]</code> exists for code that is meant to panic. Code examples inside <code>///</code> doc
+  comments are also compiled and run by <code>cargo test</code> ("doc tests"), so documentation examples
+  cannot go stale.</p>
+</section>
+
+<!-- ===================== 16 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s16"><span class="snum">16</span> Walkthrough: The Web API</h2>
+  <p>Rust web back ends are usually built with <strong>axum</strong> (from the Tokio team) or
+  <strong>actix-web</strong>. axum's style resembles FastAPI or Flask: you map a URL to an async function. The
+  package in <code>api/</code> serves the order system over HTTP in about 120 lines. Its
+  <code>Cargo.toml</code> lists <code>axum</code>, <code>tokio</code>, <code>serde</code>,
+  <code>serde_json</code>, and the <code>tutorial</code> library by path.</p>
+
+  <h3 class="sub" id="s16-1">16.1&nbsp;&nbsp;Shared State</h3>
+:::file api/src/main.rs :: struct AppState :: type SharedState
+  <p>Requests are handled concurrently, on several threads. Every handler needs the catalog and the order
+  service, and the service changes on every order. Chapter 14's rules decide the design:</p>
+  <ul class="tight">
+    <li>The whole state sits in an <code>Arc</code>, so every request can hold a pointer to it.</li>
+    <li>What changes (the service, the order counter) sits in a <code>Mutex</code>; what never changes (the
+    catalog) does not need one.</li>
+    <li><code>type SharedState = Arc&lt;AppState&gt;;</code> is a <strong>type alias</strong>, a short name for a
+    long type.</li>
+  </ul>
+  <p>Replace the <code>Mutex</code> with chapter 13's single-threaded <code>RefCell</code>, and the program does
+  not compile: "<code>RefCell&lt;OrderService&lt;BulkDiscount&gt;&gt;</code> cannot be shared between threads
+  safely". In Python the same mistake compiles, runs, and corrupts stock counts under
+  load.</p>
+
+  <h3 class="sub" id="s16-2">16.2&nbsp;&nbsp;Start-up and Routes</h3>
+:::file api/src/main.rs :: async fn main
+  <p><code>#[tokio::main]</code> (the line above <code>main</code>) starts the Tokio runtime and runs the async
+  <code>main</code> on it. <code>Router::new().route(path, get(handler))</code> is FastAPI's
+  <code>@app.get(path)</code>. <code>{sku}</code> in a path is a parameter. <code>with_state</code> hands the
+  shared state to every handler.</p>
+
+  <h3 class="sub" id="s16-3">16.3&nbsp;&nbsp;Handlers</h3>
+:::file api/src/main.rs :: async fn list_products :: async fn stock_of
+:::file api/src/main.rs :: struct LineRequest ..> struct OrderRequest
+:::file api/src/main.rs :: async fn create_order :: fn bad_request
+  <ul class="tight">
+    <li><strong>Extractors.</strong> Each handler parameter says where its value comes from:
+    <code>State(state)</code> from the shared state, <code>Path(sku)</code> from the URL,
+    <code>Json(request)</code> from the JSON body. FastAPI reads type hints the same way. A body that does not
+    fit <code>OrderRequest</code> is rejected with HTTP 422 before the handler runs.</li>
+    <li><strong>Return types.</strong> <code>Json(value)</code> sends the value as JSON with status 200. A
+    <code>(StatusCode, Json(...))</code> pair sets the status. Returning <code>Result</code> lets the handler use
+    <code>?</code>; an <code>Err</code> becomes the error response.</li>
+    <li><code>map_err(bad_request)?</code> converts an <code>OrderError</code> into a 400 response and returns it
+    early. This replaces <code>try</code>/<code>except</code> around the business logic.</li>
+    <li><code>let Some(product) = ... else { return ...; };</code> is <strong>let-else</strong>: bind the value
+    if the pattern matches, otherwise run the <code>else</code> block, which must leave the function.</li>
+    <li><code>json!({ ... })</code> builds a JSON value with Python-dict-like syntax.</li>
+    <li>The order-number block <code>{ let mut next = ...; ... }</code> releases its lock at its closing brace
+    (section 13.2), before checkout takes the other lock.</li>
+  </ul>
+
+  <h3 class="sub" id="s16-4">16.4&nbsp;&nbsp;Trying It</h3>
+:::out Terminal 1
+cargo run -p tutorial-api
+listening on http://127.0.0.1:3000
+:::
+:::out Terminal 2
+curl localhost:3000/products
+[{"sku":"KB-01","name":"Keyboard","price_cents":4500},{"sku":"MN-03","name":"Monitor","price_cents":18000},{"sku":"MS-02","name":"Mouse","price_cents":2500}]
+
+curl localhost:3000/stock/MN-03
+{"in_stock":5,"sku":"MN-03"}
+
+curl -X POST localhost:3000/orders -H 'Content-Type: application/json' \
+     -d '{"customer":"Ada","lines":[{"sku":"MN-03","quantity":1}]}'
+{"order_id":"ORD-1001","subtotal_cents":18000,"discount_cents":1800,"tax_cents":1296,"total_cents":17496}
+
+curl -X POST localhost:3000/orders -H 'Content-Type: application/json' \
+     -d '{"customer":"Ada","lines":[{"sku":"XX-99","quantity":1}]}'
+{"error":"unknown SKU XX-99"}                                   (HTTP 404)
+
+curl -X POST localhost:3000/orders -H 'Content-Type: application/json' \
+     -d '{"customer":"Ada","lines":[{"sku":"MN-03","quantity":9}]}'
+{"error":"ORD-1003: only 4 of Monitor in stock, 9 requested"}   (HTTP 400)
+
+curl -X POST localhost:3000/orders -H 'Content-Type: application/json' \
+     -d '{"customer":"Ada","lines":[{"sku":"MN-03","quantity":-1}]}'
+Failed to deserialize the JSON body into the target type: lines[0].quantity:
+invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
+:::
+  <p>The outputs above come from one fresh server, in this order. Order numbers are taken even by orders that
+  fail, which is why the third order is ORD-1003. The products come out sorted by SKU because the catalog is a
+  <code>BTreeMap</code>. Stop the server with Ctrl+C; the stock resets on the next start, because it lives in
+  memory.</p>
+  <p>Production services add a database through <strong>sqlx</strong> (async SQL with queries checked at
+  compile time) or <strong>Diesel</strong> (an ORM), and logging through the <strong>tracing</strong>
+  crate.</p>
+</section>
+
+<!-- ===================== 17 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s17"><span class="snum">17</span> Hands-on Drills</h2>
+  <p>Each drill is a small change to the companion project, ordered from easiest to hardest. Run the stated
+  command after each change. Solutions are in appendix A. Before starting, check that the project is clean:
+  <code>cargo test</code> should report 4 passed in each of its three test groups (12 in all).</p>
+  <div class="note"><span class="lbl">Undo.</span> The project is a git repository. After a drill,
+  <code>git checkout -- .</code> restores every file to its committed state. To keep your answers instead, work
+  on a branch: <code>git switch -c drills</code>.</div>
+
+  <h3 class="sub" id="s17-1">17.1&nbsp;&nbsp;Drill 1: Read a Failing Test</h3>
+  <p>In <code>src/orders/service.rs</code>, change <code>TAX_RATE_PERCENT</code> from <code>8</code> to
+  <code>10</code>.</p>
+  <ul class="tight">
+    <li>Predict the new totals for ORD-1 and ORD-2, then check with <code>cargo run -- 15</code>.</li>
+    <li>Run <code>cargo test</code>. Two tests fail. Find the <code>left</code> and <code>right</code> lines in the
+    output and explain each number. <code>assert_eq!(a, b)</code> calls its first argument "left" and its second
+    "right".</li>
+    <li>Change the rate back.</li>
+  </ul>
+
+  <h3 class="sub" id="s17-2">17.2&nbsp;&nbsp;Drill 2: Read Compiler Errors</h3>
+  <p>Make each change to <code>src/ch03_basics.rs</code> on its own, run <code>cargo build</code>, read the whole
+  error, and undo it. The first line gives the error code and message; the <code>--&gt;</code> line gives
+  <code>file:line:column</code>.</p>
+  <table class="data">
+    <thead><tr><th style="width:44%">Change</th><th>Error you will see</th></tr></thead>
+    <tbody>
+      <tr><td>Delete the <code>;</code> after <code>let year = 1843</code></td><td><code>error: expected `;`, found `println`</code></td></tr>
+      <tr><td>Change <code>let mut count = 0;</code> to <code>let count = 0;</code></td><td><code>error[E0384]: cannot assign twice to immutable variable `count`</code></td></tr>
+      <tr><td>Change <code>square(7)</code> to <code>square(7.5)</code></td><td><code>error[E0308]: mismatched types</code> ... <code>expected `i32`, found floating-point number</code></td></tr>
+      <tr><td>Add <code>;</code> after <code>n * n</code> in <code>square</code></td><td><code>error[E0308]: mismatched types</code> ... <code>expected `i32`, found `()`</code>, with <code>help: remove this semicolon to return this value</code></td></tr>
+      <tr><td>Change <code>println!("count is</code> to <code>printline!("count is</code></td><td><code>error: cannot find macro `printline` in this scope</code>, with <code>help: a macro with a similar name exists</code></td></tr>
+    </tbody>
+  </table>
+  <p>Then try the two ownership errors from chapter 6: remove the <code>//</code> in front of
+  <code>println!("{a}")</code>, and separately in front of <code>scores.push(40)</code>, in
+  <code>src/ch06_ownership.rs</code>.</p>
+
+  <h3 class="sub" id="s17-3">17.3&nbsp;&nbsp;Drill 3: Find a Bug with a Test</h3>
+  <p><code>BankAccount::withdraw</code> accepts a negative amount, and <code>withdraw(-50_00)</code> adds money.
+  <code>deposit</code> rejects amounts that are not positive, but <code>withdraw</code> does not.</p>
+  <ol class="tight">
+    <li>In <code>tests/bank_account.rs</code>, add a <code>#[test]</code> named
+    <code>withdraw_negative_is_rejected</code> that deposits 100.00, checks that <code>withdraw(-50_00)</code>
+    returns an error, and checks that the balance is still 100.00.</li>
+    <li>Run <code>cargo test</code> and watch the new test fail.</li>
+    <li>Fix <code>withdraw</code> and watch it pass. This order (failing test, then fix) is test-driven
+    development.</li>
+  </ol>
+  <p>Then think about the alternative: if the amount parameter were a <code>u64</code>, a negative amount could
+  not be passed at all. Choosing types that make bad states impossible is a common Rust design argument.</p>
+
+  <h3 class="sub" id="s17-4">17.4&nbsp;&nbsp;Drill 4: Add a Method</h3>
+  <p>Add <code>pub fn transfer_to(&amp;mut self, other: &amp;mut BankAccount, cents: i64) -&gt; Result&lt;(), String&gt;</code>
+  to <code>BankAccount</code>. It moves money from this account to <code>other</code>. Add a test that transfers
+  40.00 from an account holding 100.00 and checks both balances. Hint: reuse <code>withdraw</code> and
+  <code>deposit</code>, and use <code>?</code>.</p>
+  <p>Afterwards, try calling <code>account.transfer_to(&amp;mut account, 10_00)</code> with the same account on
+  both sides. Explain the compiler's answer using section 6.4's rule.</p>
+
+  <h3 class="sub" id="s17-5">17.5&nbsp;&nbsp;Drill 5: A New Enum Variant</h3>
+  <p>In <code>src/ch08_enums.rs</code>, add a <code>Triangle { base_len: f64, height: f64 }</code> variant to
+  <code>Shape</code>, and nothing else. Run <code>cargo build</code> and read the two errors: the compiler lists
+  every <code>match</code> that does not yet handle a triangle. Fix both (area is half of base times height),
+  then add <code>Shape::Triangle { base_len: 3.0, height: 4.0 }</code> to the <code>shapes</code> list. Expected
+  new output lines:</p>
+:::out
+Triangle with area 6.00
+Total area: 19.14
+:::
+
+  <h3 class="sub" id="s17-6">17.6&nbsp;&nbsp;Drill 6: An Iterator Query</h3>
+  <p>In <code>src/ch12_iterators.rs</code>, print the highest-paid employee in each department, departments in
+  alphabetical order. Expected output:</p>
+:::out
+Top in Engineering: Grace
+Top in Finance: Barbara
+Top in Sales: Alan
+:::
+  <p>Hint: loop over <code>&amp;staff</code>, keeping a <code>BTreeMap</code> from department name to the best
+  <code>&amp;Employee</code> so far. <code>entry(...).or_insert(e)</code> gives you the current best to compare
+  against.</p>
+
+  <h3 class="sub" id="s17-7">17.7&nbsp;&nbsp;Drill 7: A New Discount Rule</h3>
+  <p>In <code>src/orders/discounts.rs</code>, write <code>LoyaltyDiscount</code>, a <code>DiscountPolicy</code> that
+  gives 5% off to customers whose names are in a set passed to its constructor:
+  <code>LoyaltyDiscount::new(&amp;["Ada"])</code>. Put it above the <code>#[cfg(test)]</code> module (Clippy
+  objects to items after the tests), and add it to the <code>pub use discounts::{...}</code> line in
+  <code>src/orders/mod.rs</code>. In <code>src/ch15_orders.rs</code>, pass it instead of
+  <code>BulkDiscount::default()</code>. Do not change <code>OrderService</code>. Expected:</p>
+:::out
+ORD-1: subtotal 50.00 - discount 2.50 + tax 3.80 = 51.30
+ORD-2: subtotal 225.00 - discount 0.00 + tax 18.00 = 243.00
+:::
+  <p>Afterwards, say in one sentence why <code>OrderService</code> did not need to change. That sentence is an
+  interview answer about traits and dependency injection.</p>
+
+  <h3 class="sub" id="s17-8">17.8&nbsp;&nbsp;Drill 8: A New Endpoint</h3>
+  <p>In <code>api/src/main.rs</code>, add <code>POST /stock/{sku}/{quantity}</code>, which restocks a product and
+  returns the new stock level. Register the route next to the others, and write the handler like
+  <code>stock_of</code>. Restart the server, then test it (a fresh server holds 5 monitors):</p>
+:::out
+curl -X POST localhost:3000/stock/MN-03/10
+{"in_stock":15,"sku":"MN-03"}
+:::
+  <p>Hint: two path parameters arrive together as a tuple: <code>Path((sku, quantity)): Path&lt;(String, u32)&gt;</code>.</p>
+</section>
+
+<!-- ===================== 18 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s18"><span class="snum">18</span> Interview Quick Reference</h2>
+  <p>Each answer below is short enough to say aloud. Each one points to the example in the companion project
+  that you can describe.</p>
+
+  <h3 class="sub" id="s18-1">18.1&nbsp;&nbsp;Likely Questions</h3>
+
+  <div class="qa"><div class="q">How does Rust guarantee memory safety without a garbage collector?</div>
+  <p>Ownership. Every value has one owner, and it is freed when the owner goes out of scope. Values can be
+  borrowed through references, with either many shared references or one mutable reference at a time, and no
+  reference may outlive its value. The compiler's borrow checker enforces these rules, so use-after-free,
+  double free and data races do not compile. (Chapter 6.)</p></div>
+
+  <div class="qa"><div class="q">What is the difference between a move, a copy and a clone?</div>
+  <p>A move transfers ownership; the old variable can no longer be used. Types that implement <code>Copy</code>
+  (numbers, <code>bool</code>, <code>char</code>) are copied bit for bit on assignment instead, and both stay
+  usable. <code>clone()</code> is an explicit, possibly expensive deep copy. Rust never clones implicitly.
+  (Section 6.2.)</p></div>
+
+  <div class="qa"><div class="q">What is a lifetime?</div>
+  <p>The span of code during which a reference is valid. The compiler infers most lifetimes. When a function
+  returns a reference derived from several inputs, you annotate the relationship, as in
+  <code>fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str</code>. Annotations describe
+  constraints; they never extend how long anything lives. (Section 13.1.)</p></div>
+
+  <div class="qa"><div class="q">String versus &amp;str?</div>
+  <p><code>String</code> owns heap-allocated, growable UTF-8 text. <code>&amp;str</code> is a borrowed view of text
+  owned elsewhere, such as a <code>String</code> or a literal. Take <code>&amp;str</code> in function parameters;
+  store <code>String</code> in structs. (Section 4.2.)</p></div>
+
+  <div class="qa"><div class="q">How does Rust handle errors? Why no exceptions?</div>
+  <p>Recoverable errors are values: functions return <code>Result&lt;T, E&gt;</code>, and the <code>?</code>
+  operator passes an error up to the caller. The possible failure is part of the signature, so it cannot be
+  ignored by accident. Bugs cause a <code>panic</code>, which stops the thread. Missing values use
+  <code>Option&lt;T&gt;</code> instead of null. <code>OrderService::checkout</code> returning
+  <code>Result&lt;Receipt, OrderError&gt;</code> is the example. (Chapter 9.)</p></div>
+
+  <div class="qa"><div class="q">unwrap versus expect versus ?</div>
+  <p><code>unwrap</code> panics on an error; <code>expect</code> panics with your message; <code>?</code> returns
+  the error to the caller. Use <code>?</code> in library and application code, <code>expect</code> where an error
+  is truly impossible or in <code>main</code>, and <code>unwrap</code> mainly in tests.</p></div>
+
+  <div class="qa"><div class="q">What is a trait? How does Rust do object-oriented programming?</div>
+  <p>A trait is a set of methods a type promises to implement, like an interface, and it can supply default
+  methods. Rust has encapsulation (private fields, <code>pub</code>), polymorphism (traits) and abstraction, but
+  no inheritance between structs: shared behaviour comes from traits and shared data from composition.
+  <code>DiscountPolicy</code> with <code>NoDiscount</code> and <code>BulkDiscount</code> is the example.
+  (Chapter 11.)</p></div>
+
+  <div class="qa"><div class="q">Generics versus trait objects? Static versus dynamic dispatch?</div>
+  <p>A generic <code>fn f&lt;T: Trait&gt;</code> is compiled separately for each concrete type (monomorphisation):
+  static dispatch, fastest, but one type per use. A trait object <code>Box&lt;dyn Trait&gt;</code> calls through
+  a vtable at run time: dynamic dispatch, slightly slower, but one collection can hold different types.
+  <code>OrderService&lt;D: DiscountPolicy&gt;</code> uses a generic; <code>Vec&lt;Box&lt;dyn Describe&gt;&gt;</code>
+  uses trait objects. (Sections 11.2, 11.3.)</p></div>
+
+  <div class="qa"><div class="q">Enums and match: why are they important?</div>
+  <p>Rust enums are sum types: a value is exactly one variant, and each variant can carry different data.
+  <code>match</code> must handle every variant, so adding a variant turns every place that forgot it into a
+  compile error. <code>Option</code>, <code>Result</code> and <code>OrderError</code> are all enums. (Chapter
+  8.)</p></div>
+
+  <div class="qa"><div class="q">Box, Rc, Arc, RefCell, Mutex: when do you use each?</div>
+  <p><code>Box</code>: one owner, value on the heap (recursive types, trait objects). <code>Rc</code>: several
+  owners in one thread. <code>Arc</code>: several owners across threads. <code>RefCell</code>: mutation through a
+  shared reference in one thread, checked at run time. <code>Mutex</code>: the same across threads, one at a
+  time. The web API's <code>Arc&lt;AppState&gt;</code> holding a <code>Mutex&lt;OrderService&gt;</code> is the
+  example. (Sections 13.4, 16.1.)</p></div>
+
+  <div class="qa"><div class="q">What are Send and Sync? What is fearless concurrency?</div>
+  <p><code>Send</code>: a value can move to another thread. <code>Sync</code>: a value can be shared between
+  threads by reference. The compiler implements them automatically where safe and refuses to share anything
+  else across threads, so data races become compile errors. <code>Rc</code> is neither; <code>Arc</code> is both.
+  (Section 14.2.)</p></div>
+
+  <div class="qa"><div class="q">How does async work in Rust?</div>
+  <p><code>async fn</code> returns a future, a value describing work that does nothing until awaited. The
+  standard library has no runtime to drive futures; Tokio is the usual choice. <code>tokio::join!</code> runs
+  futures concurrently, like <code>asyncio.gather</code>. Use async for I/O-bound work with many waits, threads
+  for CPU-bound work. (Section 14.4.)</p></div>
+
+  <div class="qa"><div class="q">What does unsafe do?</div>
+  <p>An <code>unsafe</code> block allows a few operations the compiler cannot check, such as dereferencing raw
+  pointers or calling C functions. It does not turn the borrow checker off for ordinary code. Safe wrappers
+  around small <code>unsafe</code> cores are how the standard library builds <code>Vec</code> and
+  <code>Mutex</code>. Application code rarely needs it.</p></div>
+
+  <div class="qa"><div class="q">What are macros? Why does println! have a "!"?</div>
+  <p>Macros generate code at compile time. <code>println!</code> checks its format string against its arguments
+  during compilation; <code>vec!</code> builds a vector; <code>#[derive(Debug)]</code> writes trait
+  implementations. The <code>!</code> marks a macro call as different from a function call.</p></div>
+
+  <div class="qa"><div class="q">What are zero-cost abstractions?</div>
+  <p>High-level features that compile to the same machine code you would write by hand: iterator chains become
+  plain loops, generics become specialised functions, and <code>Option&lt;&amp;T&gt;</code> takes no more space
+  than a pointer. You do not pay at run time for code you do not use. (Section 12.4.)</p></div>
+
+  <div class="qa"><div class="q">Why would a Python team use Rust?</div>
+  <p>For CPU-bound hot spots and for tools where speed and reliability matter. PyO3 and maturin build Rust code
+  into a Python extension module, which is how <code>pydantic-core</code> and <code>polars</code> work. Tools such
+  as <code>uv</code> and <code>ruff</code> are Rust programs. The trade-off is a slower edit-compile cycle and a
+  steeper learning curve.</p></div>
+
+  <div class="qa"><div class="q">How would you test this code?</div>
+  <p>With Rust's built-in test framework: <code>#[test]</code> functions run by <code>cargo test</code>, unit tests
+  in a <code>#[cfg(test)]</code> module beside the code, integration tests in <code>tests/</code>. Inject
+  collaborators through constructors or generics so a test can pass a simple version, as the order tests pass
+  <code>NoDiscount</code>. (Section 15.8.)</p></div>
+
+  <h3 class="sub" id="s18-2">18.2&nbsp;&nbsp;Talking About Your Background</h3>
+  <div class="callout">
+    <div class="hd">Suggested answer</div>
+    <p>Say that your strongest language is Python, and that you have studied Rust and can read it and make
+    changes. Name the mappings you know: dataclasses to structs with <code>derive</code>, exceptions to
+    <code>Result</code> and <code>?</code>, <code>None</code> to <code>Option</code>, ABCs and Protocols to traits,
+    comprehensions to iterator chains, <code>with</code> to <code>Drop</code>, <code>asyncio</code> to Tokio,
+    pytest to <code>cargo test</code>. Say that ownership is the new idea for you, and then explain it correctly
+    in two sentences. Interviewers trust a precise explanation of a small thing more than a broad claim.</p>
+  </div>
+
+  <h3 class="sub" id="s18-3">18.3&nbsp;&nbsp;Reading Unfamiliar Rust Code</h3>
+  <ol class="tight">
+    <li>Open <code>Cargo.toml</code>: the edition, the dependencies (they tell you the stack: <code>tokio</code>,
+    <code>axum</code>, <code>serde</code>, <code>sqlx</code>), and <code>[workspace]</code> members.</li>
+    <li>Find the entry point: <code>src/main.rs</code> and its <code>fn main</code>, or <code>src/lib.rs</code> for
+    a library. The <code>mod</code> lines list the modules.</li>
+    <li>Read the types before the functions: <code>struct</code>s, <code>enum</code>s and <code>trait</code>s are
+    the design. An error enum lists everything that can go wrong.</li>
+    <li>For a function, read the signature first. <code>&amp;self</code>, <code>&amp;mut self</code> or
+    <code>self</code> tells you whether it reads, changes or consumes; a <code>Result</code> return tells you it
+    can fail.</li>
+    <li>Follow the <code>?</code>s: each one is a place the function can return early with an error.</li>
+    <li>In a web service, find the <code>Router</code>: it lists every endpoint and its handler.</li>
+    <li>Read the tests. Test names state the intended behaviour in plain words.</li>
+    <li>Run <code>cargo doc --open</code> for a browsable view of every public item.</li>
+  </ol>
+
+  <h3 class="sub" id="s18-4">18.4&nbsp;&nbsp;Glossary</h3>
+  <table class="data">
+    <thead><tr><th style="width:25%">Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Borrow checker</td><td>The part of the compiler that enforces ownership and borrowing rules.</td></tr>
+      <tr><td>Crate</td><td>A compilation unit: one library or one program. Also a package on crates.io.</td></tr>
+      <tr><td>Derive</td><td>An attribute that generates a trait implementation: <code>#[derive(Debug)]</code>.</td></tr>
+      <tr><td>Drop</td><td>Freeing a value when its owner goes out of scope; the trait that runs cleanup code then.</td></tr>
+      <tr><td>Edition</td><td>A set of language rules a crate opts into: 2015, 2018, 2021, 2024.</td></tr>
+      <tr><td>Lifetime</td><td>The span in which a reference is valid; written <code>'a</code>.</td></tr>
+      <tr><td>Macro</td><td>Code that generates code at compile time; called with <code>!</code>.</td></tr>
+      <tr><td>Module</td><td>A namespace, normally one file, declared with <code>mod</code>.</td></tr>
+      <tr><td>Monomorphisation</td><td>Compiling a separate copy of generic code for each concrete type.</td></tr>
+      <tr><td>Panic</td><td>An unrecoverable error that stops the thread; for bugs.</td></tr>
+      <tr><td>RAII</td><td>Tying a resource's release to a value's scope, through <code>Drop</code>.</td></tr>
+      <tr><td>Serde</td><td>The standard serialisation framework (JSON and many other formats).</td></tr>
+      <tr><td>Slice</td><td>A borrowed view of a contiguous sequence: <code>&amp;[T]</code>, <code>&amp;str</code>.</td></tr>
+      <tr><td>Trait object</td><td>A value of type <code>dyn Trait</code> behind a pointer, called through a vtable.</td></tr>
+      <tr><td>Turbofish</td><td>The <code>::&lt;T&gt;</code> syntax naming a type parameter: <code>parse::&lt;u32&gt;()</code>.</td></tr>
+      <tr><td>Unit type</td><td><code>()</code>, the empty tuple: what a function with no return value returns.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== A ===================== -->
+<section class="new-page">
+  <h2 class="section" id="sA"><span class="snum">A</span> Drill Solutions</h2>
+  <p>Each solution below was applied to a copy of the project and built. With all of them in place, all 14 tests
+  pass, Clippy reports no warnings, and the outputs match those stated in chapter 17.</p>
+
+  <h3 class="sub" id="sA-1">A.1&nbsp;&nbsp;Drill 1</h3>
+  <p>ORD-1: tax 5.00, total 55.00. ORD-2: tax 20.25, total 222.75. <code>cargo test</code> reports:</p>
+:::out
+thread 'checkout_large_order_gets_bulk_discount' panicked at tests/order_service.rs:43:5:
+assertion `left == right` failed
+  left: 17820
+ right: 17496
+thread 'checkout_small_order_adds_tax_only' panicked at tests/order_service.rs:30:5:
+assertion `left == right` failed
+  left: 500
+ right: 400
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out
+:::
+  <p>17820 cents is (180.00 &minus; 18.00) &times; 1.10 = 178.20; 500 cents is 10% of 50.00. The tests expect the
+  8% results, 174.96 and 4.00, so they fail when the rate changes.</p>
+
+  <h3 class="sub" id="sA-2">A.2&nbsp;&nbsp;Drills 3 and 4</h3>
+  <p>Before the fix, the new test fails with
+  <code>assertion failed: account.withdraw(-50_00).is_err()</code>.</p>
+:::rs src/ch07_structs.rs
+pub fn withdraw(&mut self, cents: i64) -> Result<(), String> {
+    if cents <= 0 {
+        return Err(format!("withdrawal must be positive, got {cents}"));
+    }
+    if cents > self.balance_cents {
+        // ... unchanged ...
+    }
+    self.balance_cents -= cents;
+    Ok(())
+}
+
+pub fn transfer_to(&mut self, other: &mut BankAccount, cents: i64) -> Result<(), String> {
+    self.withdraw(cents)?;
+    other.deposit(cents)
+}
+:::
+:::rs tests/bank_account.rs
+#[test]
+fn withdraw_negative_is_rejected() {
+    let mut account = BankAccount::new("ACC-1", "Ada");
+    account.deposit(100_00).unwrap();
+    assert!(account.withdraw(-50_00).is_err());
+    assert_eq!(account.balance(), 100_00);
+}
+
+#[test]
+fn transfer_moves_money() {
+    let mut source = BankAccount::new("ACC-1", "Ada");
+    let mut target = BankAccount::new("ACC-2", "Grace");
+    source.deposit(100_00).unwrap();
+
+    source.transfer_to(&mut target, 40_00).unwrap();
+
+    assert_eq!(source.balance(), 60_00);
+    assert_eq!(target.balance(), 40_00);
+}
+:::
+  <p><code>transfer_to</code> withdraws first, so a failed withdrawal returns early through <code>?</code> and
+  nothing is deposited. Transferring an account to itself needs <code>&amp;mut self</code> and
+  <code>&amp;mut account</code> at once, two mutable borrows of one value, which the borrow checker refuses
+  (E0499).</p>
+
+  <h3 class="sub" id="sA-3">A.3&nbsp;&nbsp;Drill 5</h3>
+  <p>Adding the variant alone gives two errors, one per <code>match</code>:</p>
+:::out
+error[E0004]: non-exhaustive patterns: `&Shape::Triangle { .. }` not covered
+  --> src/ch08_enums.rs:17:15
+error[E0004]: non-exhaustive patterns: `&Shape::Triangle { .. }` not covered
+  --> src/ch08_enums.rs:25:15
+:::
+:::rs src/ch08_enums.rs
+pub enum Shape {
+    // ... Circle, Rectangle, Square unchanged ...
+    Triangle { base_len: f64, height: f64 },
+}
+
+// in area():
+Shape::Triangle { base_len, height } => 0.5 * base_len * height,
+
+// in name():
+Shape::Triangle { .. } => "Triangle",
+
+// in run(), the last item of the shapes list:
+Shape::Triangle { base_len: 3.0, height: 4.0 },
+:::
+
+  <h3 class="sub" id="sA-4">A.4&nbsp;&nbsp;Drill 6</h3>
+:::rs src/ch12_iterators.rs
+use std::collections::BTreeMap;   // at the top of the file
+
+// in run():
+let mut top: BTreeMap<&str, &Employee> = BTreeMap::new();
+for e in &staff {
+    let best = top.entry(e.dept.as_str()).or_insert(e);
+    if e.salary > best.salary {
+        *best = e;
+    }
+}
+for (dept, e) in &top {
+    println!("Top in {dept}: {}", e.name);
+}
+:::
+  <p><code>best</code> is a <code>&amp;mut &amp;Employee</code>: a mutable reference to the map's slot.
+  <code>*best = e</code> replaces the reference stored in the slot. The <code>BTreeMap</code> gives alphabetical
+  order; a <code>HashMap</code> would print the departments in a different order on each run.</p>
+
+  <h3 class="sub" id="sA-5">A.5&nbsp;&nbsp;Drill 7</h3>
+:::rs src/orders/discounts.rs
+use std::collections::HashSet;   // at the top of the file
+
+/// 5% off for named loyal customers.
+pub struct LoyaltyDiscount {
+    customers: HashSet<String>,
+}
+
+impl LoyaltyDiscount {
+    pub fn new(customers: &[&str]) -> LoyaltyDiscount {
+        let mut set = HashSet::new();
+        for name in customers {
+            set.insert(name.to_string());
+        }
+        LoyaltyDiscount { customers: set }
+    }
+}
+
+impl DiscountPolicy for LoyaltyDiscount {
+    fn discount_for(&self, order: &Order) -> i64 {
+        if self.customers.contains(&order.customer) {
+            percent_of(order.subtotal(), 5)
+        } else {
+            0
+        }
+    }
+}
+:::
+:::rs src/ch15_orders.rs
+use crate::orders::{Inventory, LoyaltyDiscount, Order, OrderService, Product, Receipt};
+
+// in run():
+let mut service = OrderService::new(inventory, LoyaltyDiscount::new(&["Ada"]));
+:::
+  <p>Remove <code>BulkDiscount</code> from the <code>use</code> line, or the compiler warns that it is unused.
+  The one-sentence answer: <code>OrderService</code> is generic over any type that implements the
+  <code>DiscountPolicy</code> trait, so a new rule plugs in without changing it.</p>
+
+  <h3 class="sub" id="sA-6">A.6&nbsp;&nbsp;Drill 8</h3>
+:::rs api/src/main.rs
+// in main(), with the other routes:
+.route("/stock/{sku}/{quantity}", post(restock))
+
+// a new handler:
+async fn restock(
+    State(state): State<SharedState>,
+    Path((sku, quantity)): Path<(String, u32)>,
+) -> Json<Value> {
+    let mut service = state.service.lock().unwrap();
+    service.inventory_mut().restock(&sku, quantity);
+    Json(json!({ "sku": sku, "in_stock": service.inventory().stock_of(&sku) }))
+}
+:::
+  <p>A quantity that is not a whole number, such as <code>/stock/MN-03/ten</code>, fails to parse as a
+  <code>u32</code>, and axum answers with HTTP 400 before the handler runs.</p>
+</section>
+
+</body>
+</html>
