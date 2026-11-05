@@ -39,6 +39,7 @@ src/
   money.rs                     formats amounts held as whole cents
 tests/                         integration tests for BankAccount and OrderService
 api/                           the tutorial-api package: an axum web API over the order system
+.vscode/                       VS Code: recommended extensions, settings, debug configurations
 docs/
   Rust-for-Python-Developers.pdf   the textbook
   book/                        textbook source and build script
@@ -64,7 +65,23 @@ Demo numbers match the book's chapter numbers.
 | 14 | `ch14_concurrency.rs` | Threads, `Arc<Mutex>`, channels, async with Tokio |
 | 15 | `ch15_orders.rs` + `orders/` | Everything together; dependency injection; tests |
 
-Book chapters 16 to 18 cover the web API, the drills, and the interview quick reference.
+Book chapters 16 to 19 cover the web API, developer setup, the drills, and the interview quick reference.
+
+## Editor setup
+
+Open the repo folder in VS Code and accept the recommended extensions (`.vscode/extensions.json`):
+rust-analyzer (language server), CodeLLDB (debugger), Even Better TOML and Dependi. The workspace
+settings format with rustfmt on save and show Clippy's lints as you type. The Run and Debug panel has
+three debug configurations: a chapter demo, the web API, and the order tests. Chapter 17 of the book
+explains each tool and maps it to its Python counterpart (Pylance, Ruff, mypy, debugpy).
+
+| Python | Rust |
+|---|---|
+| Pylance | rust-analyzer |
+| Ruff format (Black, isort) | rustfmt: `cargo fmt` |
+| Ruff check (flake8, pylint) | Clippy: `cargo clippy` |
+| mypy, Pyright | the compiler: `cargo check` |
+| debugpy | CodeLLDB |
 
 ## The web API
 
@@ -82,7 +99,7 @@ curl -X POST localhost:3000/orders -H 'Content-Type: application/json' \
 
 ## Practising
 
-Chapter 17 of the book lists eight drills, from reading a failing test to adding an API endpoint.
+Chapter 18 of the book lists eight drills, from reading a failing test to adding an API endpoint.
 Appendix A has the solutions. Work on a branch so you can compare or reset:
 
 ```bash

@@ -81,8 +81,8 @@ async fn list_products(State(state): State<SharedState>) -> Json<Vec<Product>> {
 }
 
 async fn stock_of(State(state): State<SharedState>, Path(sku): Path<String>) -> Json<Value> {
-    let service = state.service.lock().unwrap();
-    Json(json!({ "sku": sku, "in_stock": service.inventory().stock_of(&sku) }))
+    let in_stock = state.service.lock().unwrap().inventory().stock_of(&sku);
+    Json(json!({ "sku": sku, "in_stock": in_stock }))
 }
 
 // Returning a Result: Ok becomes 200 with a JSON receipt, Err becomes the
@@ -91,11 +91,7 @@ async fn create_order(
     State(state): State<SharedState>,
     Json(request): Json<OrderRequest>,
 ) -> Result<Json<Receipt>, (StatusCode, Json<Value>)> {
-    let order_id = {
-        let mut next = state.next_order.lock().unwrap();
-        *next += 1;
-        format!("ORD-{next}")
-    }; // the lock is released here, at the end of the block
+    let order_id = format!("ORD-{}", next_order_number(&state));
 
     let mut order = Order::new(&order_id, &request.customer);
     for line in &request.lines {
@@ -108,9 +104,24 @@ async fn create_order(
             .map_err(bad_request)?;
     }
 
-    let mut service = state.service.lock().unwrap();
-    let receipt = service.checkout(&order).map_err(bad_request)?;
+    let receipt = checkout(&state, &order).map_err(bad_request)?;
     Ok(Json(receipt))
+}
+
+// The handlers take a lock only as a temporary (stock_of) or inside these two
+// plain (not async) functions, so no lock guard is ever held in a variable
+// inside an async handler. Held across an .await, a std Mutex guard makes the
+// handler's future unusable on other threads, and axum rejects it.
+// rust-analyzer flags even a guard held in a variable with no .await,
+// although cargo accepts that.
+fn next_order_number(state: &AppState) -> u32 {
+    let mut next = state.next_order.lock().unwrap();
+    *next += 1;
+    *next
+}
+
+fn checkout(state: &AppState, order: &Order) -> Result<Receipt, OrderError> {
+    state.service.lock().unwrap().checkout(order)
 }
 
 fn bad_request(error: OrderError) -> (StatusCode, Json<Value>) {

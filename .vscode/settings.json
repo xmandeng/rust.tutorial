@@ -1,0 +1,9 @@
+{
+  // Format with rustfmt (through rust-analyzer) on every save.
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  // Show Clippy's lints while you edit, not only compiler errors.
+  "rust-analyzer.check.command": "clippy"
+}

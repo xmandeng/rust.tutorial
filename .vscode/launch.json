@@ -1,0 +1,37 @@
+{
+  // Debug configurations for CodeLLDB (vadimcn.vscode-lldb), version 1.11.6 or later.
+  // "cargo" is the Cargo command that builds the program; CodeLLDB then debugs it.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug a chapter demo",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": ["run", "--bin=tutorial"],
+      "args": ["${input:chapter}"],
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "name": "Debug the web API",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": ["run", "-p", "tutorial-api"],
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "name": "Debug the order tests",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": ["test", "--test=order_service"],
+      "sourceLanguages": ["rust"]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "chapter",
+      "type": "promptString",
+      "description": "Chapter number (3 to 15)",
+      "default": "7"
+    }
+  ]
+}

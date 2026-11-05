@@ -12,7 +12,7 @@
   padding: 1px 8px; border-radius: 3px 3px 0 0; background: #1f3756; }
 .codehd.py { background: #2f6b3f; }
 .codehd.out { background: #5b6470; }
-.codehd.sh, .codehd.toml { background: #46647f; }
+.codehd.sh, .codehd.toml, .codehd.json, .codehd.yaml { background: #46647f; }
 .codeblock .st { color: #a8d5a2; }
 table.data code { font-size: 8.5pt; }
 table.data td.c, table.data td.c code { font-family: 'Liberation Mono','Nimbus Mono PS',monospace; font-size: 8.5pt; }
@@ -63,8 +63,9 @@ ol.tight li, ul.tight li { margin-bottom: 0.08cm; }
     <div class="l1"><a href="#s14"><span class="num">14</span>Concurrency and Async</a></div>
     <div class="l1"><a href="#s15"><span class="num">15</span>Walkthrough: The Order System</a></div>
     <div class="l1"><a href="#s16"><span class="num">16</span>Walkthrough: The Web API</a></div>
-    <div class="l1"><a href="#s17"><span class="num">17</span>Hands-on Drills</a></div>
-    <div class="l1"><a href="#s18"><span class="num">18</span>Interview Quick Reference</a></div>
+    <div class="l1"><a href="#s17"><span class="num">17</span>Developer Setup: Editor, Linting, Debugging</a></div>
+    <div class="l1"><a href="#s18"><span class="num">18</span>Hands-on Drills</a></div>
+    <div class="l1"><a href="#s19"><span class="num">19</span>Interview Quick Reference</a></div>
     <div class="l1"><a href="#sA"><span class="num">A</span>Drill Solutions</a></div>
   </div>
 
@@ -83,8 +84,9 @@ ol.tight li, ul.tight li { margin-bottom: 0.08cm; }
     <li>Read chapters 1, 6, 9, 11 and 15. Ownership (6) is the idea interviewers test most; the others
     cover how Rust replaces exceptions, classes and inheritance.</li>
     <li>Skim chapters 8 (enums) and 14 (concurrency).</li>
-    <li>Do drills 1 to 3 in chapter 17 at a keyboard.</li>
-    <li>Read chapter 18 last, out loud.</li>
+    <li>Set up VS Code with chapter 17 (sections 17.1 and 17.2 are enough to start).</li>
+    <li>Do drills 1 to 3 in chapter 18 at a keyboard.</li>
+    <li>Read chapter 19 last, out loud.</li>
   </ul>
 </section>
 
@@ -1561,7 +1563,7 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
   <h3 class="sub" id="s16-3">16.3&nbsp;&nbsp;Handlers</h3>
 :::file api/src/main.rs :: async fn list_products :: async fn stock_of
 :::file api/src/main.rs :: struct LineRequest ..> struct OrderRequest
-:::file api/src/main.rs :: async fn create_order :: fn bad_request
+:::file api/src/main.rs :: async fn create_order :: fn next_order_number :: fn checkout( :: fn bad_request
   <ul class="tight">
     <li><strong>Extractors.</strong> Each handler parameter says where its value comes from:
     <code>State(state)</code> from the shared state, <code>Path(sku)</code> from the URL,
@@ -1575,9 +1577,17 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
     <li><code>let Some(product) = ... else { return ...; };</code> is <strong>let-else</strong>: bind the value
     if the pattern matches, otherwise run the <code>else</code> block, which must leave the function.</li>
     <li><code>json!({ ... })</code> builds a JSON value with Python-dict-like syntax.</li>
-    <li>The order-number block <code>{ let mut next = ...; ... }</code> releases its lock at its closing brace
-    (section 13.2), before checkout takes the other lock.</li>
   </ul>
+  <p><strong>Locks in async code.</strong> The handlers never keep a <code>MutexGuard</code> (section 14.2) in a
+  variable. <code>stock_of</code> uses the guard as a temporary, released at the end of the statement;
+  <code>create_order</code> locks inside two plain functions, <code>next_order_number</code> and
+  <code>checkout</code>, whose guards are released when they return. The reason is <code>Send</code>: a
+  <code>std::sync::Mutex</code> guard may not move between threads, so a handler that holds one across an
+  <code>.await</code> produces a future Tokio cannot move between threads, and the route does not compile.
+  rust-analyzer goes further and flags a guard held in a variable even with no <code>.await</code>, though
+  <code>cargo</code> accepts that (section 17.2). Keeping locks in small synchronous functions satisfies both and
+  keeps each lock held as briefly as possible. (Tokio also has its own <code>tokio::sync::Mutex</code>, which may
+  be held across <code>.await</code>.)</p>
 
   <h3 class="sub" id="s16-4">16.4&nbsp;&nbsp;Trying It</h3>
 :::out Terminal 1
@@ -1619,7 +1629,263 @@ invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
 
 <!-- ===================== 17 ===================== -->
 <section class="new-page">
-  <h2 class="section" id="s17"><span class="snum">17</span> Hands-on Drills</h2>
+  <h2 class="section" id="s17"><span class="snum">17</span> Developer Setup: Editor, Linting, Debugging</h2>
+  <p>A Python setup is assembled from separate projects: Pylance for the editor, Ruff (formerly Black, isort,
+  flake8) for formatting and linting, mypy or Pyright for types, debugpy for debugging, pytest for tests. Rust's
+  tooling is more unified. Most of it ships with the compiler, each job has one standard tool, and the tools
+  read their settings from the same <code>Cargo.toml</code>. This chapter sets up VS Code and walks through each
+  tool. The repo's <code>.vscode/</code> folder holds the configuration, so the project opens ready to use.</p>
+
+  <h3 class="sub" id="s17-1">17.1&nbsp;&nbsp;The Map from Python</h3>
+  <table class="data">
+    <thead><tr><th style="width:24%">Job</th><th style="width:26%">Python</th><th style="width:24%">Rust</th><th>Comes from</th></tr></thead>
+    <tbody>
+      <tr><td>Language server</td><td>Pylance (Pyright)</td><td><strong>rust-analyzer</strong></td><td>VS Code extension</td></tr>
+      <tr><td>Formatter</td><td>Ruff format (Black)</td><td><strong>rustfmt</strong>: <code>cargo fmt</code></td><td>Rust install</td></tr>
+      <tr><td>Import sorting</td><td>Ruff <code>I</code> rules (isort)</td><td>rustfmt, by default</td><td>Rust install</td></tr>
+      <tr><td>Linter</td><td>Ruff check (flake8, pylint)</td><td><strong>Clippy</strong>: <code>cargo clippy</code></td><td>Rust install</td></tr>
+      <tr><td>Type checker</td><td>mypy, Pyright</td><td>The compiler: <code>cargo check</code></td><td>Rust install</td></tr>
+      <tr><td>Debugger</td><td>debugpy</td><td><strong>CodeLLDB</strong></td><td>VS Code extension</td></tr>
+      <tr><td>Test runner</td><td>pytest</td><td><code>cargo test</code></td><td>Rust install</td></tr>
+      <tr><td>Tool config</td><td><code>pyproject.toml</code></td><td><code>Cargo.toml</code>, <code>rustfmt.toml</code></td><td></td></tr>
+      <tr><td>Version manager</td><td>pyenv, <code>uv python</code></td><td><code>rustup</code></td><td>Rust install</td></tr>
+    </tbody>
+  </table>
+  <p>The largest difference: there is no separate type checker to install, configure or argue with. The compiler
+  is the type checker, and its verdict is final; code with a type error does not build.</p>
+
+  <h3 class="sub" id="s17-2">17.2&nbsp;&nbsp;VS Code and rust-analyzer</h3>
+  <p><code>rustup</code>'s default installation (see the README) includes <code>cargo</code>, <code>clippy</code> and
+  <code>rustfmt</code>. In VS Code, open the repo folder. VS Code reads <code>.vscode/extensions.json</code> and
+  offers to install the recommended extensions:</p>
+:::include .vscode/extensions.json
+  <table class="data">
+    <thead><tr><th style="width:36%">Extension</th><th>Does</th></tr></thead>
+    <tbody>
+      <tr><td class="c">rust-lang.rust-analyzer</td><td>The language server: errors as you type, completion, hover docs, go to definition, rename. It bundles its own server, so there is nothing else to install.</td></tr>
+      <tr><td class="c">vadimcn.vscode-lldb</td><td>CodeLLDB, the debugger (section 17.6). It bundles its own LLDB.</td></tr>
+      <tr><td class="c">tamasfe.even-better-toml</td><td>Syntax highlighting and checks for <code>Cargo.toml</code>.</td></tr>
+      <tr><td class="c">fill-labs.dependi</td><td>Shows, next to each dependency in <code>Cargo.toml</code>, whether a newer version exists.</td></tr>
+    </tbody>
+  </table>
+  <p>The workspace settings switch on formatting when you save and make the editor's warnings come from Clippy:</p>
+:::include .vscode/settings.json
+  <ul class="tight">
+    <li><code>editor.formatOnSave</code> with rust-analyzer as the formatter runs rustfmt on every save, as Ruff
+    format does in your Python setup.</li>
+    <li><code>rust-analyzer.check.command</code> chooses what runs on save to produce the squiggles. The default
+    is <code>check</code>, the compiler only. <code>clippy</code> adds Clippy's lints: the equivalent of seeing
+    Ruff's warnings inside Pylance.</li>
+  </ul>
+  <p>Features to try in the first five minutes:</p>
+  <ul class="tight">
+    <li><strong>Inlay hints.</strong> rust-analyzer shows each inferred type in grey after the variable name:
+    <code>let staff</code> displays as <code>let staff: Vec&lt;Employee&gt;</code>. For a Python developer reading
+    Rust this is the most useful feature in the editor. It is on by default.</li>
+    <li><strong>Hover</strong> over any name for its type and documentation; <strong>F12</strong> goes to its
+    definition, including into the standard library's source.</li>
+    <li><strong>F2</strong> renames a function, field or variable everywhere it is used.</li>
+    <li><strong>Run | Debug</strong> links appear above <code>fn main</code> and above every <code>#[test]</code>.</li>
+    <li><strong>Ctrl+.</strong> on a squiggle offers quick fixes, such as adding a missing <code>use</code> or
+    filling in the missing arms of a <code>match</code>.</li>
+  </ul>
+  <div class="note"><span class="lbl">rust-analyzer is not the compiler.</span> It re-implements much of the
+  compiler's analysis to answer quickly, and it is occasionally wrong. While this book was being written,
+  rust-analyzer reported errors E0282 and E0277 on two routes in <code>api/src/main.rs</code> that
+  <code>cargo build</code> and Clippy accepted. The cause was a lock guard held in a variable inside an async
+  handler (section 16.3). When the editor and <code>cargo</code> disagree, <code>cargo</code> is right. Run
+  <code>cargo build</code> in the terminal to settle it.</div>
+  <p>Other editors use the same rust-analyzer server; install it with
+  <code>rustup component add rust-analyzer</code>. JetBrains makes RustRover, an IDE with its own analysis
+  engine.</p>
+
+  <h3 class="sub" id="s17-3">17.3&nbsp;&nbsp;Formatting: rustfmt</h3>
+  <p><code>cargo fmt</code> formats every file in the package; <code>cargo fmt --all</code> covers the whole
+  workspace. <code>cargo fmt --check</code> changes nothing and fails if any file is unformatted, which is what
+  CI runs. Change <code>n * n</code> to <code>n*n</code> in <code>src/ch03_basics.rs</code> and run it:</p>
+:::out cargo fmt --check
+Diff in src/ch03_basics.rs:37:
+
+ // Parameter and return types are required. The last expression is returned.
+ fn square(n: i32) -> i32 {
+-    n*n
++    n * n
+ }
+:::
+  <p>rustfmt is Black and isort in one tool: it also sorts <code>use</code> lines. Almost every Rust project uses
+  its default style, so Rust code looks the same everywhere and style debates are rare. Lines are at most 100
+  characters. A <code>rustfmt.toml</code> file at the repo root can change a few options (such as
+  <code>max_width = 120</code>); this repo has none and uses the defaults.</p>
+
+  <h3 class="sub" id="s17-4">17.4&nbsp;&nbsp;Linting: Clippy</h3>
+  <p>Clippy is Rust's Ruff check: several hundred lints that catch mistakes, slow code and unidiomatic code. Run
+  <code>cargo clippy</code>. The lints are grouped. The <code>correctness</code>, <code>suspicious</code>,
+  <code>style</code>, <code>complexity</code> and <code>perf</code> groups are on by default;
+  <code>pedantic</code> is stricter and opt-in, like enabling more of Ruff's rule sets.</p>
+  <p>To see one, replace the <code>if let ... &amp;&amp;</code> in <code>find_setting</code>
+  (<code>src/ch09_errors.rs</code>) with the two nested <code>if</code>s that older code uses:</p>
+:::out cargo clippy
+warning: this `if` statement can be collapsed
+  --> src/ch09_errors.rs:52:9
+   |
+52 | /         if let Some((k, v)) = line.split_once('=') {
+53 | |             if k.trim() == key {
+54 | |                 return Some(v.trim().to_string());
+55 | |             }
+56 | |         }
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#collapsible_if
+   = note: `#[warn(clippy::collapsible_if)]` on by default
+help: collapse nested if block
+   |
+52 ~         if let Some((k, v)) = line.split_once('=')
+53 ~             && k.trim() == key {
+54 |                 return Some(v.trim().to_string());
+55 ~             }
+   |
+:::
+  <p>Each lint has a name (<code>collapsible_if</code>), a link to its documentation, and often a suggested
+  fix. <code>cargo clippy --fix</code> applies the suggestions, like <code>ruff check --fix</code>; run
+  <code>cargo fmt</code> afterwards, because the edited lines are not reformatted.</p>
+  <table class="data">
+    <thead><tr><th style="width:42%">Ruff</th><th>Clippy</th></tr></thead>
+    <tbody>
+      <tr><td class="c">ruff check</td><td class="c">cargo clippy</td></tr>
+      <tr><td class="c">ruff check --fix</td><td class="c">cargo clippy --fix</td></tr>
+      <tr><td class="c"># noqa: E501</td><td class="c">#[allow(clippy::lint_name)]</td></tr>
+      <tr><td class="c">[tool.ruff.lint] in pyproject.toml</td><td class="c">[lints.clippy] in Cargo.toml</td></tr>
+      <tr><td>Fail CI on any warning</td><td class="c">cargo clippy -- -D warnings</td></tr>
+    </tbody>
+  </table>
+  <p>An <code>#[allow(...)]</code> attribute goes on the function, struct or module it applies to. Project-wide
+  settings go in <code>Cargo.toml</code>. This repo turns one lint off for both packages, because money is
+  written as <code>120_00</code> on purpose:</p>
+:::toml Cargo.toml
+[workspace.lints.clippy]
+inconsistent_digit_grouping = "allow"
+
+[lints]
+workspace = true
+:::
+  <p>The levels are <code>"allow"</code>, <code>"warn"</code> and <code>"deny"</code> (an error). The same table can
+  raise a whole group: adding <code>pedantic = "warn"</code> to this repo produces more than 40 warnings, mostly
+  suggestions to add <code>#[must_use]</code> attributes and documentation sections. The compiler's own warnings, such as an unused
+  variable, are configured the same way under <code>[lints.rust]</code>.</p>
+
+  <h3 class="sub" id="s17-5">17.5&nbsp;&nbsp;Type Checking: cargo check</h3>
+  <p><code>cargo check</code> runs the compiler's analysis (types, borrows, lifetimes) and stops before
+  generating machine code, so it is much faster than <code>cargo build</code>. It is the closest thing to running
+  mypy, except that it cannot be skipped: <code>cargo run</code> and <code>cargo test</code> perform the same checks
+  first. rust-analyzer runs it (or Clippy, with this repo's settings) every time you save.</p>
+
+  <h3 class="sub" id="s17-6">17.6&nbsp;&nbsp;Debugging</h3>
+  <p><strong>CodeLLDB</strong> connects VS Code to LLDB, the debugger from the LLVM project that Rust's compiler is
+  built on. The simplest start is the <strong>Debug</strong> link above <code>fn main</code> or a
+  <code>#[test]</code>: rust-analyzer builds the target and starts the debugger. For repeatable sessions, the repo
+  includes three launch configurations, which appear in VS Code's Run and Debug panel:</p>
+:::include .vscode/launch.json
+  <ul class="tight">
+    <li><code>"cargo"</code> is the Cargo command that builds the program. CodeLLDB runs it, finds the executable
+    it produced and debugs that, so no file paths are needed. This form needs CodeLLDB 1.11.6 or later; older
+    versions wanted <code>build</code> in place of <code>run</code>.</li>
+    <li><code>"args"</code> are passed to the program: "Debug a chapter demo" asks for a chapter number, then runs
+    it as <code>cargo run -- 7</code> would.</li>
+    <li><code>"sourceLanguages": ["rust"]</code> loads Rust's display rules, so a <code>String</code> shows as text
+    and a <code>Vec</code> as a list instead of raw pointers.</li>
+  </ul>
+  <p>Click left of a line number to set a breakpoint, press F5, and use F10 (step over), F11 (step into) and
+  Shift+F11 (step out), the same keys as debugpy. The Variables panel shows locals, and the Watch panel evaluates
+  expressions. This is the session underneath, run from the terminal with <code>rust-lldb</code>, with a
+  breakpoint inside <code>BankAccount::deposit</code> (output abridged):</p>
+:::out rust-lldb target/debug/tutorial
+(lldb) breakpoint set --file ch07_structs.rs --line 38
+(lldb) run 7
+* thread #1, name = 'tutorial', stop reason = breakpoint 1.1
+    frame #0: tutorial`<tutorial::ch07_structs::BankAccount>::deposit(self=0x00007fffffffa748, cents=12000) at ch07_structs.rs:38:9
+   37  	        }
+-> 38  	        self.balance_cents += cents;
+   39  	        Ok(())
+(lldb) bt 3
+  * frame #0: tutorial`<tutorial::ch07_structs::BankAccount>::deposit(self=..., cents=12000) at ch07_structs.rs:38:9
+    frame #1: tutorial`tutorial::ch07_structs::run at ch07_structs.rs:89:13
+    frame #2: tutorial`tutorial::main at main.rs:55:18
+:::
+  <p>Debug in the default debug build. A <code>--release</code> build is optimised, and the optimiser removes or
+  merges variables, so the debugger shows less.</p>
+  <p><strong>Print debugging</strong> has its own macro. <code>dbg!(expr)</code> prints the file, line, the
+  expression's source text and its value (in the pretty <code>{:#?}</code> form) to stderr, then returns the value, so it can
+  wrap an expression in place. Add these two lines after the first <code>deposit</code> in
+  <code>src/ch07_structs.rs</code> and run <code>cargo run -- 7</code>:</p>
+:::rs
+dbg!(&account);
+dbg!(account.balance() / 100);
+:::
+:::out
+[src/ch07_structs.rs:90:5] &account = BankAccount {
+    id: "ACC-0001",
+    owner: "Ada",
+    balance_cents: 12000,
+}
+[src/ch07_structs.rs:91:5] account.balance() / 100 = 120
+:::
+  <p><strong>Panics</strong> print their location. Change the first deposit to <code>account.deposit(-1).unwrap()</code>
+  and run chapter 7:</p>
+:::out cargo run -- 7
+thread 'main' (2884) panicked at src/ch07_structs.rs:89:25:
+called `Result::unwrap()` on an `Err` value: "deposit must be positive, got -1"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+:::
+  <p>The number after <code>'main'</code> is a thread id and changes from run to run. Running
+  <code>RUST_BACKTRACE=1 cargo run -- 7</code> adds the full call stack, Python's traceback, with
+  <code>tutorial::ch07_structs::run at ./src/ch07_structs.rs:89:25</code> and
+  <code>tutorial::main at ./src/main.rs:55:18</code> among the frames.</p>
+
+  <h3 class="sub" id="s17-7">17.7&nbsp;&nbsp;pre-commit and CI</h3>
+  <p>The <code>pre-commit</code> tool you use for Python runs Rust tools too, through local hooks that call
+  Cargo. This configuration was tested on a copy of the repo: it passes on the committed code and fails with
+  the diff above when <code>n*n</code> is introduced.</p>
+:::yaml .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+:::
+  <p><code>pass_filenames: false</code> matters: Cargo works on whole packages, not on single files. The repo's
+  CI runs the same checks, then the tests and the demos, on every pull request:</p>
+:::include .github/workflows/ci.yml
+
+  <h3 class="sub" id="s17-8">17.8&nbsp;&nbsp;Other Cargo Tools</h3>
+  <p>Cargo can be extended: <code>cargo install NAME</code> builds a tool from crates.io and adds it as a new
+  <code>cargo</code> subcommand. Ones you will hear about:</p>
+  <table class="data">
+    <thead><tr><th style="width:24%">Tool</th><th>Does</th><th style="width:28%">Python analogue</th></tr></thead>
+    <tbody>
+      <tr><td class="c">cargo-nextest</td><td>An alternative test runner built for speed, with clearer output: <code>cargo nextest run</code></td><td>pytest with pytest-xdist</td></tr>
+      <tr><td class="c">bacon</td><td>Re-runs check, Clippy or tests whenever a file changes</td><td>pytest-watch</td></tr>
+      <tr><td class="c">cargo-audit</td><td>Checks <code>Cargo.lock</code> against a database of security advisories</td><td>pip-audit</td></tr>
+      <tr><td class="c">cargo-deny</td><td>Enforces rules on dependencies: licences, advisories, duplicates</td><td>(several tools)</td></tr>
+      <tr><td class="c">cargo-machete</td><td>Finds dependencies listed in <code>Cargo.toml</code> but never used</td><td>deptry</td></tr>
+    </tbody>
+  </table>
+  <p>None of these is needed for this book. <code>cargo doc --open</code>, which builds browsable documentation for
+  your code and every dependency, is built in.</p>
+</section>
+
+<!-- ===================== 18 ===================== -->
+<section class="new-page">
+  <h2 class="section" id="s18"><span class="snum">18</span> Hands-on Drills</h2>
   <p>Each drill is a small change to the companion project, ordered from easiest to hardest. Run the stated
   command after each change. Solutions are in appendix A. Before starting, check that the project is clean:
   <code>cargo test</code> should report 4 passed in each of its three test groups (12 in all).</p>
@@ -1627,7 +1893,7 @@ invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
   <code>git checkout -- .</code> restores every file to its committed state. To keep your answers instead, work
   on a branch: <code>git switch -c drills</code>.</div>
 
-  <h3 class="sub" id="s17-1">17.1&nbsp;&nbsp;Drill 1: Read a Failing Test</h3>
+  <h3 class="sub" id="s18-1">18.1&nbsp;&nbsp;Drill 1: Read a Failing Test</h3>
   <p>In <code>src/orders/service.rs</code>, change <code>TAX_RATE_PERCENT</code> from <code>8</code> to
   <code>10</code>.</p>
   <ul class="tight">
@@ -1638,7 +1904,7 @@ invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
     <li>Change the rate back.</li>
   </ul>
 
-  <h3 class="sub" id="s17-2">17.2&nbsp;&nbsp;Drill 2: Read Compiler Errors</h3>
+  <h3 class="sub" id="s18-2">18.2&nbsp;&nbsp;Drill 2: Read Compiler Errors</h3>
   <p>Make each change to <code>src/ch03_basics.rs</code> on its own, run <code>cargo build</code>, read the whole
   error, and undo it. The first line gives the error code and message; the <code>--&gt;</code> line gives
   <code>file:line:column</code>.</p>
@@ -1656,7 +1922,7 @@ invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
   <code>println!("{a}")</code>, and separately in front of <code>scores.push(40)</code>, in
   <code>src/ch06_ownership.rs</code>.</p>
 
-  <h3 class="sub" id="s17-3">17.3&nbsp;&nbsp;Drill 3: Find a Bug with a Test</h3>
+  <h3 class="sub" id="s18-3">18.3&nbsp;&nbsp;Drill 3: Find a Bug with a Test</h3>
   <p><code>BankAccount::withdraw</code> accepts a negative amount, and <code>withdraw(-50_00)</code> adds money.
   <code>deposit</code> rejects amounts that are not positive, but <code>withdraw</code> does not.</p>
   <ol class="tight">
@@ -1670,7 +1936,7 @@ invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
   <p>Then think about the alternative: if the amount parameter were a <code>u64</code>, a negative amount could
   not be passed at all. Choosing types that make bad states impossible is a common Rust design argument.</p>
 
-  <h3 class="sub" id="s17-4">17.4&nbsp;&nbsp;Drill 4: Add a Method</h3>
+  <h3 class="sub" id="s18-4">18.4&nbsp;&nbsp;Drill 4: Add a Method</h3>
   <p>Add <code>pub fn transfer_to(&amp;mut self, other: &amp;mut BankAccount, cents: i64) -&gt; Result&lt;(), String&gt;</code>
   to <code>BankAccount</code>. It moves money from this account to <code>other</code>. Add a test that transfers
   40.00 from an account holding 100.00 and checks both balances. Hint: reuse <code>withdraw</code> and
@@ -1678,7 +1944,7 @@ invalid value: integer `-1`, expected u32 at line 1 column 55     (HTTP 422)
   <p>Afterwards, try calling <code>account.transfer_to(&amp;mut account, 10_00)</code> with the same account on
   both sides. Explain the compiler's answer using section 6.4's rule.</p>
 
-  <h3 class="sub" id="s17-5">17.5&nbsp;&nbsp;Drill 5: A New Enum Variant</h3>
+  <h3 class="sub" id="s18-5">18.5&nbsp;&nbsp;Drill 5: A New Enum Variant</h3>
   <p>In <code>src/ch08_enums.rs</code>, add a <code>Triangle { base_len: f64, height: f64 }</code> variant to
   <code>Shape</code>, and nothing else. Run <code>cargo build</code> and read the two errors: the compiler lists
   every <code>match</code> that does not yet handle a triangle. Fix both (area is half of base times height),
@@ -1689,7 +1955,7 @@ Triangle with area 6.00
 Total area: 19.14
 :::
 
-  <h3 class="sub" id="s17-6">17.6&nbsp;&nbsp;Drill 6: An Iterator Query</h3>
+  <h3 class="sub" id="s18-6">18.6&nbsp;&nbsp;Drill 6: An Iterator Query</h3>
   <p>In <code>src/ch12_iterators.rs</code>, print the highest-paid employee in each department, departments in
   alphabetical order. Expected output:</p>
 :::out
@@ -1701,7 +1967,7 @@ Top in Sales: Alan
   <code>&amp;Employee</code> so far. <code>entry(...).or_insert(e)</code> gives you the current best to compare
   against.</p>
 
-  <h3 class="sub" id="s17-7">17.7&nbsp;&nbsp;Drill 7: A New Discount Rule</h3>
+  <h3 class="sub" id="s18-7">18.7&nbsp;&nbsp;Drill 7: A New Discount Rule</h3>
   <p>In <code>src/orders/discounts.rs</code>, write <code>LoyaltyDiscount</code>, a <code>DiscountPolicy</code> that
   gives 5% off to customers whose names are in a set passed to its constructor:
   <code>LoyaltyDiscount::new(&amp;["Ada"])</code>. Put it above the <code>#[cfg(test)]</code> module (Clippy
@@ -1715,7 +1981,7 @@ ORD-2: subtotal 225.00 - discount 0.00 + tax 18.00 = 243.00
   <p>Afterwards, say in one sentence why <code>OrderService</code> did not need to change. That sentence is an
   interview answer about traits and dependency injection.</p>
 
-  <h3 class="sub" id="s17-8">17.8&nbsp;&nbsp;Drill 8: A New Endpoint</h3>
+  <h3 class="sub" id="s18-8">18.8&nbsp;&nbsp;Drill 8: A New Endpoint</h3>
   <p>In <code>api/src/main.rs</code>, add <code>POST /stock/{sku}/{quantity}</code>, which restocks a product and
   returns the new stock level. Register the route next to the others, and write the handler like
   <code>stock_of</code>. Restart the server, then test it (a fresh server holds 5 monitors):</p>
@@ -1723,16 +1989,18 @@ ORD-2: subtotal 225.00 - discount 0.00 + tax 18.00 = 243.00
 curl -X POST localhost:3000/stock/MN-03/10
 {"in_stock":15,"sku":"MN-03"}
 :::
-  <p>Hint: two path parameters arrive together as a tuple: <code>Path((sku, quantity)): Path&lt;(String, u32)&gt;</code>.</p>
+  <p>Hints: two path parameters arrive together as a tuple: <code>Path((sku, quantity)): Path&lt;(String, u32)&gt;</code>.
+  The handler needs the lock for two calls (restock, then read the new level), so do both in a small plain function,
+  as <code>next_order_number</code> does (section 16.3).</p>
 </section>
 
-<!-- ===================== 18 ===================== -->
+<!-- ===================== 19 ===================== -->
 <section class="new-page">
-  <h2 class="section" id="s18"><span class="snum">18</span> Interview Quick Reference</h2>
+  <h2 class="section" id="s19"><span class="snum">19</span> Interview Quick Reference</h2>
   <p>Each answer below is short enough to say aloud. Each one points to the example in the companion project
   that you can describe.</p>
 
-  <h3 class="sub" id="s18-1">18.1&nbsp;&nbsp;Likely Questions</h3>
+  <h3 class="sub" id="s19-1">19.1&nbsp;&nbsp;Likely Questions</h3>
 
   <div class="qa"><div class="q">How does Rust guarantee memory safety without a garbage collector?</div>
   <p>Ownership. Every value has one owner, and it is freed when the owner goes out of scope. Values can be
@@ -1830,24 +2098,30 @@ curl -X POST localhost:3000/stock/MN-03/10
   as <code>uv</code> and <code>ruff</code> are Rust programs. The trade-off is a slower edit-compile cycle and a
   steeper learning curve.</p></div>
 
+  <div class="qa"><div class="q">What does your Rust tooling look like?</div>
+  <p>VS Code with rust-analyzer as the language server, set to run Clippy on save; rustfmt on save; CodeLLDB for
+  debugging. In CI: <code>cargo fmt --check</code>, <code>cargo clippy -- -D warnings</code> and
+  <code>cargo test</code>. Coming from Python, it maps to Pylance plus Ruff, except the compiler replaces mypy.
+  (Chapter 17.)</p></div>
+
   <div class="qa"><div class="q">How would you test this code?</div>
   <p>With Rust's built-in test framework: <code>#[test]</code> functions run by <code>cargo test</code>, unit tests
   in a <code>#[cfg(test)]</code> module beside the code, integration tests in <code>tests/</code>. Inject
   collaborators through constructors or generics so a test can pass a simple version, as the order tests pass
   <code>NoDiscount</code>. (Section 15.8.)</p></div>
 
-  <h3 class="sub" id="s18-2">18.2&nbsp;&nbsp;Talking About Your Background</h3>
+  <h3 class="sub" id="s19-2">19.2&nbsp;&nbsp;Talking About Your Background</h3>
   <div class="callout">
     <div class="hd">Suggested answer</div>
     <p>Say that your strongest language is Python, and that you have studied Rust and can read it and make
     changes. Name the mappings you know: dataclasses to structs with <code>derive</code>, exceptions to
     <code>Result</code> and <code>?</code>, <code>None</code> to <code>Option</code>, ABCs and Protocols to traits,
     comprehensions to iterator chains, <code>with</code> to <code>Drop</code>, <code>asyncio</code> to Tokio,
-    pytest to <code>cargo test</code>. Say that ownership is the new idea for you, and then explain it correctly
+    pytest to <code>cargo test</code>, Ruff to rustfmt and Clippy, Pylance to rust-analyzer. Say that ownership is the new idea for you, and then explain it correctly
     in two sentences. Interviewers trust a precise explanation of a small thing more than a broad claim.</p>
   </div>
 
-  <h3 class="sub" id="s18-3">18.3&nbsp;&nbsp;Reading Unfamiliar Rust Code</h3>
+  <h3 class="sub" id="s19-3">19.3&nbsp;&nbsp;Reading Unfamiliar Rust Code</h3>
   <ol class="tight">
     <li>Open <code>Cargo.toml</code>: the edition, the dependencies (they tell you the stack: <code>tokio</code>,
     <code>axum</code>, <code>serde</code>, <code>sqlx</code>), and <code>[workspace]</code> members.</li>
@@ -1864,11 +2138,12 @@ curl -X POST localhost:3000/stock/MN-03/10
     <li>Run <code>cargo doc --open</code> for a browsable view of every public item.</li>
   </ol>
 
-  <h3 class="sub" id="s18-4">18.4&nbsp;&nbsp;Glossary</h3>
+  <h3 class="sub" id="s19-4">19.4&nbsp;&nbsp;Glossary</h3>
   <table class="data">
     <thead><tr><th style="width:25%">Term</th><th>Meaning</th></tr></thead>
     <tbody>
       <tr><td>Borrow checker</td><td>The part of the compiler that enforces ownership and borrowing rules.</td></tr>
+      <tr><td>Clippy</td><td>The standard linter: <code>cargo clippy</code>.</td></tr>
       <tr><td>Crate</td><td>A compilation unit: one library or one program. Also a package on crates.io.</td></tr>
       <tr><td>Derive</td><td>An attribute that generates a trait implementation: <code>#[derive(Debug)]</code>.</td></tr>
       <tr><td>Drop</td><td>Freeing a value when its owner goes out of scope; the trait that runs cleanup code then.</td></tr>
@@ -1879,6 +2154,8 @@ curl -X POST localhost:3000/stock/MN-03/10
       <tr><td>Monomorphisation</td><td>Compiling a separate copy of generic code for each concrete type.</td></tr>
       <tr><td>Panic</td><td>An unrecoverable error that stops the thread; for bugs.</td></tr>
       <tr><td>RAII</td><td>Tying a resource's release to a value's scope, through <code>Drop</code>.</td></tr>
+      <tr><td>rust-analyzer</td><td>The language server behind editor features: errors as you type, completion, go to definition.</td></tr>
+      <tr><td>rustfmt</td><td>The standard formatter: <code>cargo fmt</code>.</td></tr>
       <tr><td>Serde</td><td>The standard serialisation framework (JSON and many other formats).</td></tr>
       <tr><td>Slice</td><td>A borrowed view of a contiguous sequence: <code>&amp;[T]</code>, <code>&amp;str</code>.</td></tr>
       <tr><td>Trait object</td><td>A value of type <code>dyn Trait</code> behind a pointer, called through a vtable.</td></tr>
@@ -1892,7 +2169,7 @@ curl -X POST localhost:3000/stock/MN-03/10
 <section class="new-page">
   <h2 class="section" id="sA"><span class="snum">A</span> Drill Solutions</h2>
   <p>Each solution below was applied to a copy of the project and built. With all of them in place, all 14 tests
-  pass, Clippy reports no warnings, and the outputs match those stated in chapter 17.</p>
+  pass, Clippy reports no warnings, and the outputs match those stated in chapter 18.</p>
 
   <h3 class="sub" id="sA-1">A.1&nbsp;&nbsp;Drill 1</h3>
   <p>ORD-1: tax 5.00, total 55.00. ORD-2: tax 20.25, total 222.75. <code>cargo test</code> reports:</p>
@@ -2049,9 +2326,15 @@ async fn restock(
     State(state): State<SharedState>,
     Path((sku, quantity)): Path<(String, u32)>,
 ) -> Json<Value> {
+    let in_stock = restock_sync(&state, &sku, quantity);
+    Json(json!({ "sku": sku, "in_stock": in_stock }))
+}
+
+// a plain (not async) function: the lock is taken and released here
+fn restock_sync(state: &AppState, sku: &str, quantity: u32) -> u32 {
     let mut service = state.service.lock().unwrap();
-    service.inventory_mut().restock(&sku, quantity);
-    Json(json!({ "sku": sku, "in_stock": service.inventory().stock_of(&sku) }))
+    service.inventory_mut().restock(sku, quantity);
+    service.inventory().stock_of(sku)
 }
 :::
   <p>A quantity that is not a whole number, such as <code>/stock/MN-03/ten</code>, fails to parse as a

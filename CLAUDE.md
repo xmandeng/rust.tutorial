@@ -22,5 +22,9 @@ The reader is new to Rust. Favour plain, conventional Rust over clever code; the
   change, rebuild the book and check that its stated outputs still match `cargo run`.
 - Output blocks (`:::out`) in the book are copied from real runs, including compiler errors with their
   line numbers. Re-run and update them when code changes.
-- Chapter 17 drills and appendix A solutions are verified against the code. Keep them in sync.
+- Chapter 18 drills and appendix A solutions are verified against the code. Keep them in sync.
+- Chapter 17 (developer setup) includes `.vscode/*.json` and `.github/workflows/ci.yml` whole with
+  `:::include`; its tool outputs (cargo fmt, Clippy, rust-lldb, dbg!, panic) were captured from real runs.
+- Run `rust-analyzer diagnostics .` after changing `api/src/main.rs`: it reports false errors when an async
+  handler holds a Mutex guard in a variable (see the comment above `next_order_number`).
 - The textbook PDF is committed so it can be read without building.

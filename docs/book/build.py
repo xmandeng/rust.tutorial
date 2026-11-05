@@ -7,6 +7,8 @@ Preprocessor directives (each on its own line in book.src.html):
   :::out [label]       ... :::    program or compiler output
   :::sh [label]        ... :::    shell commands
   :::toml [label]      ... :::    Cargo.toml excerpt
+  :::json, :::yaml     ... :::    other config written inline
+  :::include PATH                 a whole file, shown verbatim (config files)
   :::file PATH :: ANCHOR [:: ANCHOR ...]
       Excerpt from a real source file. For each ANCHOR, take the first line
       containing it, the comment and #[attribute] lines directly above it,
@@ -39,7 +41,8 @@ TOKEN = {
                      r'|(?P<id>[A-Za-z_][A-Za-z0-9_]*)'),
 }
 LONG_BLOCK_LINES = 22
-LABELS = {"rs": "Rust", "py": "Python", "out": "Output", "sh": "Shell", "toml": "TOML"}
+LABELS = {"rs": "Rust", "py": "Python", "out": "Output", "sh": "Shell", "toml": "TOML",
+          "json": "JSON", "yaml": "YAML"}
 
 
 def highlight(code: str, lang: str) -> str:
@@ -63,12 +66,13 @@ def highlight(code: str, lang: str) -> str:
     return "".join(out)
 
 
-def block(code: str, lang: str, label: str) -> str:
+def block(code: str, lang: str, label: str, may_split: bool = True) -> str:
     code = code.strip("\n")
     hd = f'<div class="codehd {lang}">{html.escape(label)}</div>' if label else ""
     # Short blocks stay on one page; a long one may split, rather than leave
     # most of a page empty by jumping whole to the next.
-    cls = "codewrap long" if code.count("\n") >= LONG_BLOCK_LINES else "codewrap"
+    long = may_split and code.count("\n") >= LONG_BLOCK_LINES
+    cls = "codewrap long" if long else "codewrap"
     return f'<div class="{cls}">{hd}<div class="codeblock">{highlight(code, lang)}</div></div>'
 
 
@@ -173,7 +177,15 @@ def expand(src: str) -> str:
             keep_with_next(out)
             out.append(block(dedent(parts), "rs", path))
             i += 1
-        elif re.match(r":::(rs|py|out|sh|toml)\b", ln):
+        elif ln.startswith(":::include "):
+            path = ln[11:].strip()
+            lang = {".json": "json", ".yml": "yaml", ".yaml": "yaml", ".toml": "toml"}.get(
+                Path(path).suffix, "sh")
+            keep_with_next(out)
+            # a whole config file reads best on one page, so it never splits
+            out.append(block((ROOT / path).read_text(), lang, path, may_split=False))
+            i += 1
+        elif re.match(r":::(rs|py|out|sh|toml|json|yaml)\b", ln):
             lang, _, label = ln[3:].partition(" ")
             body = []
             i += 1
